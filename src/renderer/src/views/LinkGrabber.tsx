@@ -4,6 +4,7 @@ import type { AppSnapshot, LinkItem, Toast } from '@shared/types'
 import { Mark } from '../components/Brand'
 import { Icon } from '../components/Icons'
 import { Button, Chip, IconButton, Progress } from '../components/ui'
+import { hrefsFromHtml } from '@shared/links'
 import { plural } from '../lib/format'
 import { linkStatus } from '../lib/status'
 
@@ -40,11 +41,46 @@ export function LinkGrabber({ snapshot, api, run, pushToast, onStartDownloads }:
     if (!text.trim()) return
     const result = await run(api.addLinks(text))
     if (!result) return
+    if (!result.added && !result.duplicates) {
+      pushToast({
+        kind: 'error',
+        text: 'No links found in that text. Select the links on the page and copy them, or right-click a link → Copy link address.'
+      })
+      return
+    }
     const parts = [result.added ? `Added ${plural(result.added, 'link')}` : 'No new links']
     if (result.duplicates) parts.push(`${result.duplicates} already listed`)
     if (result.invalid) parts.push(`${plural(result.invalid, 'line')} ignored`)
     pushToast({ kind: result.added ? 'success' : 'info', text: parts.join(' · ') })
     if (result.added) setText('')
+  }
+
+  /** Inserts URLs at the cursor, replacing any selection, each on its own line. */
+  const insertUrls = (el: HTMLTextAreaElement, urls: string[]) => {
+    const before = text.slice(0, el.selectionStart)
+    const after = text.slice(el.selectionEnd)
+    const block = urls.join('\n')
+    setText(`${before}${before && !before.endsWith('\n') ? '\n' : ''}${block}${after.startsWith('\n') ? '' : '\n'}${after}`)
+    pushToast({ kind: 'info', text: `Found ${plural(urls.length, 'link')} behind the copied text` })
+  }
+
+  // Copied link text (e.g. file names on a download page) carries its real URLs only in the HTML clipboard data.
+  const onPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const urls = hrefsFromHtml(e.clipboardData.getData('text/html'))
+    if (!urls.length) return
+    e.preventDefault()
+    insertUrls(e.currentTarget, urls)
+  }
+
+  const onDrop = (e: React.DragEvent<HTMLTextAreaElement>) => {
+    const uriList = e.dataTransfer
+      .getData('text/uri-list')
+      .split(/\r?\n/)
+      .filter((line) => /^https?:\/\//i.test(line))
+    const urls = [...new Set([...hrefsFromHtml(e.dataTransfer.getData('text/html')), ...uriList])]
+    if (!urls.length) return
+    e.preventDefault()
+    insertUrls(e.currentTarget, urls)
   }
 
   const toggle = (id: number) =>
@@ -69,13 +105,15 @@ export function LinkGrabber({ snapshot, api, run, pushToast, onStartDownloads }:
           placeholder={'Paste links here — one per line, or any text that contains them.\nhttps://host.example/file/abc123\nhttps://host.example/file/def456'}
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onPaste={onPaste}
+          onDrop={onDrop}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && e.ctrlKey) void addLinks()
           }}
         />
         <div className="paste-side">
           <p className="hint">
-            Waypoint picks out every URL, removes duplicates, and queues them for resolving. <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to add.
+            Paste URLs, or copy links straight off a page — Waypoint reads the URLs behind the link text. <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to add.
           </p>
           <Button variant="primary" icon="plus" onClick={addLinks} disabled={!text.trim()}>
             Add links

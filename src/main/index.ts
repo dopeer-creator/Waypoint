@@ -13,6 +13,7 @@ import {
 } from 'electron'
 import log from 'electron-log/main'
 import { invokeMethods, type InvokeApi } from '../shared/api'
+import { hrefsFromHtml } from '../shared/links'
 import type { AppSnapshot, Toast } from '../shared/types'
 import { Aria2 } from './aria2'
 import { Store } from './db'
@@ -206,15 +207,23 @@ function createTray(): void {
 }
 
 /** JDownloader-style clipboard capture: new URLs copied anywhere land in the Link Grabber. */
+/** Clipboard text plus the targets of any links in copied rich text, where URLs hide behind link text. */
+async function readClipboardLinks(): Promise<string> {
+  const [text, items] = await Promise.all([clipboard.readText(), clipboard.read().catch(() => [])])
+  const htmlItem = items.find((item) => item.types.includes('text/html'))
+  const html = htmlItem ? await ((await htmlItem.getType('text/html')) as Blob).text().catch(() => '') : ''
+  return [text, ...hrefsFromHtml(html)].join('\n')
+}
+
 async function watchClipboard(): Promise<void> {
   // Ignore whatever is already on the clipboard when watching starts.
-  let last = await clipboard.readText()
+  let last = await readClipboardLinks()
   settings.onChange((next, prev) => {
-    if (next.clipboardWatch && !prev.clipboardWatch) void clipboard.readText().then((text) => (last = text))
+    if (next.clipboardWatch && !prev.clipboardWatch) void readClipboardLinks().then((text) => (last = text))
   })
   setInterval(async () => {
     if (!settings.get().clipboardWatch) return
-    const text = await clipboard.readText()
+    const text = await readClipboardLinks()
     if (text === last) return
     last = text
     const { urls } = extractUrls(text)

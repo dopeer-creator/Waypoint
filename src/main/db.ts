@@ -8,7 +8,7 @@ import type {
   LinkStatus,
   Settings
 } from '../shared/types'
-import { hostOf } from './links'
+import { filenameHint, hostOf } from './links'
 
 /** A link as stored, including request headers (cookies) that never leave the main process. */
 export interface LinkRecord extends Omit<LinkItem, 'speed'> {
@@ -184,7 +184,7 @@ export class Store {
           .all() as { url: string }[]
       ).map((r) => r.url)
     )
-    const insert = this.db.prepare(`INSERT INTO links (url, host, created_at) VALUES (?, ?, ?)`)
+    const insert = this.db.prepare(`INSERT INTO links (url, host, filename, created_at) VALUES (?, ?, ?, ?)`)
     let added = 0
     let duplicates = 0
     this.db.transaction(() => {
@@ -194,7 +194,7 @@ export class Store {
           duplicates++
           continue
         }
-        insert.run(url, hostOf(url), now)
+        insert.run(url, hostOf(url), filenameHint(url), now)
         existing.add(url)
         added++
       }

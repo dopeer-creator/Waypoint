@@ -20,7 +20,7 @@ export function extractUrls(text: string): { urls: string[]; invalid: number } {
       invalid++
       continue
     }
-    parsed.hash = ''
+    // Keep the #fragment: some hosts put the file name there (host.example/abc123#Game.part1.rar).
     const normalized = parsed.toString()
     if (seen.has(normalized)) continue
     seen.add(normalized)
@@ -43,7 +43,17 @@ export function hostOf(url: string): string {
   }
 }
 
-const RESERVED_NAMES = /^(con|prn|aux|nul|com\d|lpt\d)$/i
+/** File name carried in a link's #fragment, shown in the grabber until the resolver finds the real one. */
+export function filenameHint(url: string): string | null {
+  try {
+    const fragment = decodeURIComponent(new URL(url).hash.slice(1))
+    return /^[^/\\]+\.[a-z0-9]{2,5}$/i.test(fragment) ? sanitizeSegment(fragment) : null
+  } catch {
+    return null
+  }
+}
+
+const RESERVED_NAMES =/^(con|prn|aux|nul|com\d|lpt\d)$/i
 
 /** Makes a string safe as a single Windows path segment. */
 export function sanitizeSegment(name: string, fallback = 'download'): string {
