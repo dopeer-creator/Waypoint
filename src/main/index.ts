@@ -27,10 +27,13 @@ import { Updater } from './updater'
 log.initialize()
 log.transports.file.level = 'info'
 
+// Dev runs use plain electron.exe; a separate ID stops Windows caching its atom icon for the installed app.
+const APP_ID = app.isPackaged ? 'com.dopeercreator.waypoint' : 'com.dopeercreator.waypoint.dev'
+
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
-  app.setAppUserModelId('com.dopeercreator.waypoint')
+  app.setAppUserModelId(APP_ID)
   app.on('second-instance', showWindow)
   app.whenReady().then(main)
 }
@@ -39,6 +42,8 @@ let win: BrowserWindow | null = null
 let tray: Tray | null = null
 let quitting = false
 let cleanedUp = false
+/** Set once services exist, so a second launch during startup doesn't try to build a window early. */
+let ready = false
 
 let store: Store
 let settings: SettingsService
@@ -46,15 +51,25 @@ let resolver: Resolver
 let downloads: DownloadManager
 let updater: Updater
 
+/** Shows the main window, recreating it if it was closed (tray click or launching Waypoint again). */
 function showWindow(): void {
-  if (!win) return
+  if (!ready) return
+  if (!win || win.isDestroyed()) {
+    createWindow()
+    return
+  }
   if (win.isMinimized()) win.restore()
   win.show()
   win.focus()
 }
 
+/** Sends to the renderer only while the window is alive. */
+function send(channel: string, payload: unknown): void {
+  if (win && !win.isDestroyed()) win.webContents.send(channel, payload)
+}
+
 function toast(kind: Toast['kind'], text: string): void {
-  win?.webContents.send('wp:toast', { kind, text } satisfies Toast)
+  send('wp:toast', { kind, text } satisfies Toast)
 }
 
 function snapshot(): AppSnapshot {
@@ -75,22 +90,22 @@ function snapshot(): AppSnapshot {
 
 let pushTimer: NodeJS.Timeout | null = null
 function pushSnapshot(): void {
-  if (pushTimer || !win) return
+  if (pushTimer || !win || win.isDestroyed()) return
   pushTimer = setTimeout(() => {
     pushTimer = null
     if (!win || win.isDestroyed()) return
     const snap = snapshot()
     win.webContents.send('wp:snapshot', snap)
-    updateTaskbarProgress(snap)
+    updateTaskbarProgress(win, snap)
   }, 150)
 }
 
-function updateTaskbarProgress(snap: AppSnapshot): void {
+function updateTaskbarProgress(target: BrowserWindow, snap: AppSnapshot): void {
   const running = new Set(snap.batches.filter((b) => b.status === 'downloading').map((b) => b.id))
   const links = snap.links.filter((l) => l.batchId !== null && running.has(l.batchId))
   const total = links.reduce((sum, l) => sum + l.totalBytes, 0)
   const done = links.reduce((sum, l) => sum + l.doneBytes, 0)
-  win?.setProgressBar(links.length && total > 0 ? done / total : -1)
+  target.setProgressBar(links.length && total > 0 ? done / total : -1)
 }
 
 function createWindow(): void {
@@ -114,8 +129,22 @@ function createWindow(): void {
     }
   })
 
-  win.once('ready-to-show', () => win?.show())
-  win.on('focus', () => win?.flashFrame(false))
+  const current = win
+  current.once('ready-to-show', () => current.show())
+  current.on('focus', () => current.flashFrame(false))
+  current.on('closed', () => {
+    if (win === current) win = null
+  })
+  // Point the taskbar at Waypoint.exe's own icon so Windows can't show a stale cached one.
+  if (app.isPackaged) {
+    current.setAppDetails({
+      appId: APP_ID,
+      appIconPath: process.execPath,
+      appIconIndex: 0,
+      relaunchCommand: `"${process.execPath}"`,
+      relaunchDisplayName: 'Waypoint'
+    })
+  }
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https://')) void shell.openExternal(url)
     return { action: 'deny' }
@@ -317,13 +346,13 @@ async function main(): Promise<void> {
   settings = new SettingsService(store)
   resolver = new Resolver(store, settings)
   downloads = new DownloadManager(store, settings, new Aria2(aria2Path()))
-  updater = new Updater((state) => win?.webContents.send('wp:update', state))
+  updater = new Updater((state) => send('wp:update', state))
 
   // Main also changes settings (e.g. remembering the last batch folder); keep the UI in sync.
-  settings.onChange((next) => win?.webContents.send('wp:settings', next))
+  settings.onChange((next) => send('wp:settings', next))
 
   resolver.on('state', (state) => {
-    if (state.phase === 'waiting-user' && win && !win.isFocused()) win.flashFrame(true)
+    if (state.phase === 'waiting-user' && win && !win.isDestroyed() && !win.isFocused()) win.flashFrame(true)
     pushSnapshot()
   })
   resolver.on('resolved', (id: number) => void downloads.onLinkResolved(id).then(pushSnapshot))
@@ -356,8 +385,24 @@ async function main(): Promise<void> {
   // Any link left mid-resolve by a crash goes back to the queue.
   for (const link of store.listLinks()) if (link.status === 'resolving') store.updateLink(link.id, { status: 'pending' })
 
+  app.on('before-quit', () => {
+    quitting = true
+  })
+  app.on('will-quit', (event) => {
+    if (cleanedUp) return
+    event.preventDefault()
+    void cleanup().finally(() => app.quit())
+  })
+  // Closing the window quits the whole app (downloads resume next launch). Close-to-tray and
+  // "Minimize to tray" hide the window instead, so they never reach this.
+  app.on('window-all-closed', () => {
+    quitting = true
+    app.quit()
+  })
+
   registerIpc()
   createWindow()
+  ready = true
   createTray()
   void watchClipboard()
   updater.init()
@@ -369,16 +414,4 @@ async function main(): Promise<void> {
     dialog.showErrorBox('Waypoint', `The download engine (aria2c) failed to start:\n${(err as Error).message}`)
   }
   pushSnapshot()
-
-  app.on('before-quit', () => {
-    quitting = true
-  })
-  app.on('will-quit', (event) => {
-    if (cleanedUp) return
-    event.preventDefault()
-    void cleanup().finally(() => app.quit())
-  })
-  app.on('window-all-closed', () => {
-    if (quitting) app.quit()
-  })
 }

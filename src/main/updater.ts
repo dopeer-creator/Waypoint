@@ -44,8 +44,8 @@ export class Updater {
   }
 
   private fail(err: Error): void {
-    // A repo with no releases yet isn't a failure — there's just nothing newer.
-    if (/no published versions/i.test(err.message)) this.set({ state: 'none', version: app.getVersion() })
+    // A repo with no releases yet, or an unpacked test build without app-update.yml, isn't a failure — there's just nothing to update to.
+    if (/no published versions|app-update\.yml/i.test(err.message)) this.set({ state: 'none', version: app.getVersion() })
     else this.set({ state: 'error', message: err.message.split('\n')[0] })
   }
 
