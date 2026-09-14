@@ -33,7 +33,32 @@ jobs:
 
       - run: npm run typecheck
 
-      - name: Build and publish
+      # Create the release up front. electron-builder uploads its files in parallel, and without an existing
+      # release each upload can create its own, splitting the files across duplicate releases.
+      - name: Create draft release
+        shell: bash
+        run: gh release create "$GITHUB_REF_NAME" --draft --title "Waypoint ${GITHUB_REF_NAME#v}" --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and upload
         run: npm run release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check all files uploaded
+        shell: bash
+        run: |
+          assets=$(gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name')
+          echo "$assets"
+          for f in latest.yml "Waypoint-Setup-${GITHUB_REF_NAME#v}.exe" "Waypoint-Setup-${GITHUB_REF_NAME#v}.exe.blockmap"; do
+            echo "$assets" | grep -qx "$f" || { echo "Missing $f"; exit 1; }
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish release
+        shell: bash
+        run: gh release edit "$GITHUB_REF_NAME" --draft=false --latest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

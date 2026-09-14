@@ -47,4 +47,5 @@ publish:
   provider: github
   owner: dopeer-creator
   repo: Waypoint
-  releaseType: release
+  # Upload into a draft; the Release workflow creates it first (avoids parallel uploads each creating a release) and publishes it after.
+  releaseType: draft
