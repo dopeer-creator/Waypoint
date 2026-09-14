@@ -1,0 +1,62 @@
+import { useCallback, useEffect, useState } from 'react'
+import type { AppSnapshot, Settings, Toast, UpdateState } from '@shared/types'
+
+const api = window.waypoint
+
+const EMPTY: AppSnapshot = {
+  links: [],
+  batches: [],
+  resolver: { running: false, phase: 'idle', current: 0, total: 0, currentLinkId: null, message: null },
+  stats: { speed: 0, active: 0, queued: 0, total: 0 }
+}
+
+export interface ToastItem extends Toast {
+  id: number
+}
+
+let toastId = 0
+
+export function useWaypoint() {
+  const [snapshot, setSnapshot] = useState<AppSnapshot>(EMPTY)
+  const [settings, setSettingsState] = useState<Settings | null>(null)
+  const [update, setUpdate] = useState<UpdateState>({ state: 'idle' })
+  const [toasts, setToasts] = useState<ToastItem[]>([])
+
+  const dismissToast = useCallback((id: number) => setToasts((list) => list.filter((t) => t.id !== id)), [])
+
+  const pushToast = useCallback(
+    (toast: Toast) => {
+      const id = ++toastId
+      setToasts((list) => [...list.slice(-3), { ...toast, id }])
+      setTimeout(() => dismissToast(id), toast.kind === 'error' ? 8000 : 4500)
+    },
+    [dismissToast]
+  )
+
+  useEffect(() => {
+    void api.getSnapshot().then(setSnapshot)
+    void api.getSettings().then(setSettingsState)
+    const offs = [api.onSnapshot(setSnapshot), api.onSettings(setSettingsState), api.onUpdate(setUpdate), api.onToast(pushToast)]
+    return () => offs.forEach((off) => off())
+  }, [pushToast])
+
+  const saveSettings = useCallback(async (patch: Partial<Settings>) => {
+    setSettingsState((s) => (s ? { ...s, ...patch } : s))
+    await api.setSettings(patch)
+  }, [])
+
+  return { snapshot, settings, saveSettings, update, toasts, pushToast, dismissToast, api }
+}
+
+/** Runs an API call and turns a thrown error into a toast. */
+export function guard(pushToast: (t: Toast) => void) {
+  return async <T>(work: Promise<T>): Promise<T | undefined> => {
+    try {
+      return await work
+    } catch (err) {
+      const message = (err as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
+      pushToast({ kind: 'error', text: message })
+      return undefined
+    }
+  }
+}

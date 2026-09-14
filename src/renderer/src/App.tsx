@@ -1,0 +1,189 @@
+import { useEffect, useMemo, useState } from 'react'
+import type { LinkItem, ThemeId } from '@shared/types'
+import { BatchDialog } from './components/BatchDialog'
+import { Mark, Wordmark } from './components/Brand'
+import { Icon, type IconName } from './components/Icons'
+import { Toasts } from './components/Toasts'
+import { Button } from './components/ui'
+import { formatSpeed } from './lib/format'
+import { guard, useWaypoint } from './lib/useWaypoint'
+import { Downloads } from './views/Downloads'
+import { LinkGrabber } from './views/LinkGrabber'
+import { SettingsView } from './views/Settings'
+
+type View = 'grabber' | 'downloads' | 'settings'
+
+const TITLES: Record<View, string> = { grabber: 'Link Grabber', downloads: 'Downloads', settings: 'Settings' }
+const THEME_ORDER: ThemeId[] = ['system', 'midnight', 'carbon', 'light']
+const THEME_LABEL: Record<ThemeId, string> = { system: 'System', midnight: 'Midnight', carbon: 'Carbon', light: 'Light' }
+
+function useResolvedTheme(theme: ThemeId | undefined): Exclude<ThemeId, 'system'> {
+  const [dark, setDark] = useState(() => matchMedia('(prefers-color-scheme: dark)').matches)
+  useEffect(() => {
+    const mq = matchMedia('(prefers-color-scheme: dark)')
+    const onChange = () => setDark(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+  if (!theme || theme === 'system') return dark ? 'midnight' : 'light'
+  return theme
+}
+
+export default function App() {
+  const { snapshot, settings, saveSettings, update, toasts, pushToast, dismissToast, api } = useWaypoint()
+  const [view, setView] = useState<View>('grabber')
+  const [batchLinks, setBatchLinks] = useState<LinkItem[] | null>(null)
+  const theme = useResolvedTheme(settings?.theme)
+  const run = useMemo(() => guard(pushToast), [pushToast])
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    const css = getComputedStyle(document.documentElement)
+    void api.setTitleBar({ color: css.getPropertyValue('--bg').trim(), symbolColor: css.getPropertyValue('--text-2').trim() })
+  }, [theme, api])
+
+  if (!settings) return null
+
+  const grabberCount = snapshot.links.filter((l) => l.batchId === null).length
+  const downloading = snapshot.stats.active + snapshot.stats.queued
+  const nav: { id: View; label: string; icon: IconName; badge?: number }[] = [
+    { id: 'grabber', label: 'Link Grabber', icon: 'grabber', badge: grabberCount },
+    { id: 'downloads', label: 'Downloads', icon: 'download', badge: downloading },
+    { id: 'settings', label: 'Settings', icon: 'sliders' }
+  ]
+
+  const cycleTheme = () => {
+    const next = THEME_ORDER[(THEME_ORDER.indexOf(settings.theme) + 1) % THEME_ORDER.length]
+    void saveSettings({ theme: next })
+  }
+
+  const updateBusy = update.state === 'checking' || update.state === 'available' || update.state === 'downloading'
+  const updateLabel = {
+    idle: 'Check for updates',
+    checking: 'Checking…',
+    none: 'Up to date',
+    available: 'Downloading update…',
+    downloading: `Downloading ${update.state === 'downloading' ? update.percent : 0}%`,
+    ready: 'Update ready',
+    error: 'Check failed — retry'
+  }[update.state]
+
+  const installUpdate = () => {
+    if (downloading > 0 && !confirm('Downloads are running. Restart now to install the update? They resume after the restart.')) return
+    void run(api.installUpdate())
+  }
+
+  return (
+    <div className="app">
+      <aside className="sidebar">
+        <div className="brand drag">
+          <Mark size={38} />
+          <div className="brand-text">
+            <Wordmark />
+            <span className="tagline">OPEN SOURCE DOWNLOADER</span>
+          </div>
+        </div>
+
+        <nav className="nav">
+          {nav.map((item) => (
+            <button key={item.id} className={`nav-item ${view === item.id ? 'active' : ''}`} onClick={() => setView(item.id)}>
+              <Icon name={item.icon} size={19} />
+              {item.label}
+              {!!item.badge && <span className="badge">{item.badge}</span>}
+            </button>
+          ))}
+        </nav>
+
+        <div className="sidebar-foot">
+          {update.state === 'ready' && (
+            <div className="update-card">
+              <span>
+                <strong>Waypoint {update.version}</strong> is ready to install.
+              </span>
+              <Button size="sm" variant="primary" icon="retry" onClick={installUpdate}>
+                Restart to update
+              </Button>
+            </div>
+          )}
+          <button className="theme-switch" onClick={cycleTheme} title="Switch theme">
+            <Icon name="contrast" size={20} />
+            <span>
+              <small>Theme</small>
+              <strong>{THEME_LABEL[settings.theme]}</strong>
+            </span>
+          </button>
+          <div className="version-row">
+            <span className="version">Waypoint v{__APP_VERSION__}</span>
+            <button className="update-link" onClick={() => void run(api.checkForUpdates())} disabled={updateBusy} title="Check GitHub for a newer version">
+              <Icon name="retry" size={13} className={update.state === 'checking' ? 'spin' : undefined} />
+              {updateLabel}
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <main className="main">
+        <header className="topbar drag">
+          <h1>{TITLES[view]}</h1>
+          <div className="stats">
+            <div className="stat">
+              <Icon name="activity" size={20} />
+              <div>
+                <div className="stat-value">{formatSpeed(snapshot.stats.speed)}</div>
+                <div className="stat-label">Speed</div>
+              </div>
+            </div>
+            <div className="stat">
+              <Icon name="download" size={20} />
+              <div>
+                <div className="stat-value">{snapshot.stats.active}</div>
+                <div className="stat-label">Active</div>
+              </div>
+            </div>
+            <div className="stat">
+              <Icon name="queue" size={20} />
+              <div>
+                <div className="stat-value">{snapshot.stats.queued}</div>
+                <div className="stat-label">Queued</div>
+              </div>
+            </div>
+            <div className="stat">
+              <Icon name="database" size={20} />
+              <div>
+                <div className="stat-value">{snapshot.stats.total}</div>
+                <div className="stat-label">Total</div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="content">
+          {view === 'grabber' && (
+            <LinkGrabber snapshot={snapshot} api={api} run={run} pushToast={pushToast} onStartDownloads={(links) => links.length && setBatchLinks(links)} />
+          )}
+          {view === 'downloads' && <Downloads snapshot={snapshot} api={api} run={run} onGoToGrabber={() => setView('grabber')} />}
+          {view === 'settings' && (
+            <SettingsView settings={settings} save={saveSettings} update={update} api={api} run={run} onToast={(text) => pushToast({ kind: 'success', text })} />
+          )}
+        </div>
+      </main>
+
+      {batchLinks && (
+        <BatchDialog
+          links={batchLinks}
+          settings={settings}
+          api={api}
+          run={run}
+          onClose={() => setBatchLinks(null)}
+          onCreated={(batch) => {
+            setBatchLinks(null)
+            setView('downloads')
+            pushToast({ kind: 'success', text: `Started "${batch.name}"` })
+          }}
+        />
+      )}
+
+      <Toasts toasts={toasts} onDismiss={dismissToast} />
+    </div>
+  )
+}

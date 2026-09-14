@@ -1,0 +1,46 @@
+{
+  "name": "waypoint",
+  "productName": "Waypoint",
+  "version": "0.1.0",
+  "description": "Waypoint — Open Source Downloader",
+  "main": "out/main/index.js",
+  "author": "dopeer-creator",
+  "license": "MIT",
+  "homepage": "https://github.com/dopeer-creator/Waypoint",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dopeer-creator/Waypoint.git"
+  },
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "icons": "node scripts/build-icons.mjs",
+    "dist": "npm run build && electron-builder --win",
+    "release": "npm run build && electron-builder --win --publish always"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "electron-log": "^5.4.4",
+    "electron-updater": "^6.8.9",
+    "playwright-core": "^1.63.0"
+  },
+  "devDependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.5.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^44.3.0",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "png-to-ico": "^3.0.2",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "sharp": "^0.35.4",
+    "typescript": "^7.0.2",
+    "vite": "^7.3.6"
+  }
+}

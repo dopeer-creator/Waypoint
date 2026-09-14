@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="588 211 360 360">
+  <defs>
+    <linearGradient id="wp-l" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#D3D6DC"/>
+    </linearGradient>
+    <linearGradient id="wp-r" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E4E6EA"/>
+      <stop offset="1" stop-color="#A2A6AF"/>
+    </linearGradient>
+    <linearGradient id="wp-a" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#A9ADB5"/>
+      <stop offset="1" stop-color="#555962"/>
+    </linearGradient>
+  </defs>
+  <path d="M722 269.5A167 167 0 0 0 606.7 473.2" fill="none" stroke="url(#wp-a)" stroke-width="7"/>
+  <path d="M814 269.5A167 167 0 0 1 929.3 473.2" fill="none" stroke="url(#wp-a)" stroke-width="7"/>
+  <path d="M768 222L603 552L768 395Z" fill="url(#wp-l)"/>
+  <path d="M768 222L933 552L768 395Z" fill="url(#wp-r)"/>
+  <path d="M768 447Q771.5 488.5 802 492Q771.5 495.5 768 560Q764.5 495.5 734 492Q764.5 488.5 768 447Z" fill="#F4F5F7"/>
+</svg>

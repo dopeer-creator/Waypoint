@@ -1,0 +1,50 @@
+appId: com.dopeercreator.waypoint
+productName: Waypoint
+copyright: Copyright © 2026 dopeer-creator
+
+directories:
+  buildResources: build
+  output: dist
+
+files:
+  - out/**
+  - package.json
+
+asarUnpack:
+  - node_modules/better-sqlite3/**
+  - node_modules/bindings/**
+  - node_modules/file-uri-to-path/**
+  - node_modules/playwright-core/**
+
+extraResources:
+  - from: resources/bin
+    to: bin
+  - from: resources/icons
+    to: icons
+
+win:
+  target:
+    - target: nsis
+      arch: x64
+  icon: build/icon.ico
+  executableName: Waypoint
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: Waypoint
+  uninstallDisplayName: Waypoint
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  installerHeaderIcon: build/icon.ico
+  deleteAppDataOnUninstall: false
+  artifactName: Waypoint-Setup-${version}.${ext}
+
+publish:
+  provider: github
+  owner: dopeer-creator
+  repo: Waypoint
+  releaseType: release
