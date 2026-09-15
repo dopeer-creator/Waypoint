@@ -97,6 +97,14 @@ export function LinkGrabber({ snapshot, api, run, pushToast, onStartDownloads, s
     setSelected(new Set())
   }
 
+  const importFile = async () => {
+    const result = await run(api.importLinks())
+    if (result === undefined || result === null) return
+    const parts = [result.added ? `Added ${plural(result.added, 'link')}` : 'No new links']
+    if (result.duplicates) parts.push(`${result.duplicates} already listed`)
+    pushToast({ kind: result.added ? 'success' : 'info', text: parts.join(' · ') })
+  }
+
   return (
     <div className="page">
       <div className="card paste">
@@ -118,6 +126,9 @@ export function LinkGrabber({ snapshot, api, run, pushToast, onStartDownloads, s
           </p>
           <Button variant="primary" icon="plus" onClick={addLinks} disabled={!text.trim()}>
             Add links
+          </Button>
+          <Button icon="file" onClick={importFile}>
+            Import from file
           </Button>
         </div>
       </div>

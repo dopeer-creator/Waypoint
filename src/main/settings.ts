@@ -18,6 +18,7 @@ export function defaultSettings(): Settings {
     autoClickDownload: true,
     winrarPath: '',
     clipboardWatch: false,
+    deleteArchivesAfterExtract: false,
     closeToTray: false,
     maxResolveAttempts: 3,
     turnstileBypass: true,

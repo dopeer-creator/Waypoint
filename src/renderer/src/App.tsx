@@ -3,6 +3,7 @@ import { THEMES } from '@shared/themes'
 import type { LinkItem, ThemeId } from '@shared/types'
 import { BatchDialog } from './components/BatchDialog'
 import { Mark, Wordmark } from './components/Brand'
+import { ClipboardPrompt } from './components/ClipboardPrompt'
 import { Icon, type IconName } from './components/Icons'
 import { IntroSplash } from './components/IntroSplash'
 import { ThemeScene } from './components/ThemeScene'
@@ -43,7 +44,7 @@ function useResolvedTheme(theme: ThemeId | undefined): Exclude<ThemeId, 'system'
 }
 
 export default function App() {
-  const { snapshot, settings, saveSettings, update, toasts, pushToast, dismissToast, api } = useWaypoint()
+  const { snapshot, settings, saveSettings, update, toasts, pushToast, dismissToast, clipboardOffer, clearClipboardOffer, api } = useWaypoint()
   const [view, setView] = useState<View>('grabber')
   const [intro, setIntro] = useState(true)
   const [batchLinks, setBatchLinks] = useState<LinkItem[] | null>(null)
@@ -232,6 +233,10 @@ export default function App() {
             pushToast({ kind: 'success', text: batches.length === 1 ? `Started "${batches[0].name}"` : `Started ${batches.length} batches` })
           }}
         />
+      )}
+
+      {clipboardOffer && (
+        <ClipboardPrompt offer={clipboardOffer} api={api} run={run} onToast={(text) => pushToast({ kind: 'success', text })} onClose={clearClipboardOffer} />
       )}
 
       <Toasts toasts={toasts} onDismiss={dismissToast} />

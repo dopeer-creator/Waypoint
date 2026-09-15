@@ -1235,6 +1235,47 @@ kbd {
   min-height: 36px;
 }
 
+.disk-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.disk-line.low {
+  color: var(--error);
+}
+
+.speed-graph {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 6px;
+}
+
+.speed-graph svg {
+  border-radius: 6px;
+}
+
+.speed-graph-label {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.speed-graph-now {
+  font-size: 12.5px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.speed-graph-peak {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
 .toolbar .spacer {
   flex: 1;
 }

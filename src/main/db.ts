@@ -38,6 +38,7 @@ interface BatchRow {
   name: string
   dir: string
   extract: number
+  delete_archives: number
   status: string
   extract_status: string
   extract_error: string | null
@@ -79,6 +80,10 @@ const MIGRATIONS = [
 
   CREATE INDEX links_batch ON links(batch_id);
   CREATE INDEX links_status ON links(status);
+  `,
+  `
+  ALTER TABLE batches ADD COLUMN delete_archives INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE links ADD COLUMN ord INTEGER NOT NULL DEFAULT 0;
   `
 ]
 
@@ -129,6 +134,7 @@ function toBatch(row: BatchRow): Batch {
     name: row.name,
     dir: row.dir,
     extract: row.extract === 1,
+    deleteArchives: row.delete_archives === 1,
     status: row.status as BatchStatus,
     extractStatus: row.extract_status as ExtractStatus,
     extractError: row.extract_error,
@@ -212,7 +218,30 @@ export class Store {
   }
 
   linksInBatch(batchId: number): LinkRecord[] {
-    return (this.db.prepare(`SELECT * FROM links WHERE batch_id = ? ORDER BY id`).all(batchId) as LinkRow[]).map(toLink)
+    // Effective order: the manual `ord` if set, else the insertion id (queue reordering writes `ord`).
+    return (
+      this.db.prepare(`SELECT * FROM links WHERE batch_id = ? ORDER BY COALESCE(NULLIF(ord, 0), id)`).all(batchId) as LinkRow[]
+    ).map(toLink)
+  }
+
+  /** Swaps a link's queue position with its neighbour `delta` steps away. Returns the neighbour id, or null. */
+  moveLinkOrder(id: number, delta: number): number | null {
+    const link = this.getLink(id)
+    if (!link || link.batchId === null) return null
+    const rows = this.db
+      .prepare(`SELECT id, COALESCE(NULLIF(ord, 0), id) AS eff FROM links WHERE batch_id = ? ORDER BY eff`)
+      .all(link.batchId) as { id: number; eff: number }[]
+    const idx = rows.findIndex((r) => r.id === id)
+    const target = idx + delta
+    if (idx < 0 || target < 0 || target >= rows.length) return null
+    const a = rows[idx]
+    const b = rows[target]
+    const set = this.db.prepare(`UPDATE links SET ord = ? WHERE id = ?`)
+    this.db.transaction(() => {
+      set.run(b.eff, a.id)
+      set.run(a.eff, b.id)
+    })()
+    return b.id
   }
 
   linksWithDownloadStatus(statuses: DownloadStatus[]): LinkRecord[] {
@@ -258,13 +287,13 @@ export class Store {
 
   // Batches
 
-  insertBatch(name: string, dir: string, extract: boolean, linkIds: number[]): Batch {
+  insertBatch(name: string, dir: string, extract: boolean, deleteArchives: boolean, linkIds: number[]): Batch {
     return this.db.transaction(() => {
       const info = this.db
         .prepare(
-          `INSERT INTO batches (name, dir, extract, status, extract_status, created_at) VALUES (?, ?, ?, 'downloading', ?, ?)`
+          `INSERT INTO batches (name, dir, extract, delete_archives, status, extract_status, created_at) VALUES (?, ?, ?, ?, 'downloading', ?, ?)`
         )
-        .run(name, dir, extract ? 1 : 0, extract ? 'waiting' : 'off', Date.now())
+        .run(name, dir, extract ? 1 : 0, deleteArchives ? 1 : 0, extract ? 'waiting' : 'off', Date.now())
       const batchId = Number(info.lastInsertRowid)
       const assign = this.db.prepare(`UPDATE links SET batch_id = ?, dl_status = 'queued' WHERE id = ?`)
       for (const id of linkIds) assign.run(batchId, id)

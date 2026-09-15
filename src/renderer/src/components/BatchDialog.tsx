@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { WaypointApi } from '@shared/api'
 import { groupFiles } from '@shared/grouping'
-import type { Batch, LinkItem, Settings } from '@shared/types'
-import { plural } from '../lib/format'
+import type { Batch, DiskSpace, LinkItem, Settings } from '@shared/types'
+import { formatBytes, plural } from '../lib/format'
 import { Icon } from './Icons'
 import { Button, Modal, Toggle } from './ui'
 
@@ -29,6 +29,8 @@ export function BatchDialog({ links, settings, api, run, onClose, onCreated }: P
   const groups = useMemo(() => groupFiles(links.map((l) => ({ id: l.id, name: l.filename ?? l.url }))), [links])
   const [baseFolder, setBaseFolder] = useState(settings.baseFolder)
   const [extract, setExtract] = useState(settings.extractDefault)
+  const [deleteArchives, setDeleteArchives] = useState(settings.deleteArchivesAfterExtract)
+  const [disk, setDisk] = useState<DiskSpace | null>(null)
   const [separate, setSeparate] = useState(groups.length > 1)
   const [names, setNames] = useState<string[]>(() => groups.map((g) => g.title || timestampName()))
   const [singleName, setSingleName] = useState(() => (groups.length === 1 ? groups[0].title : '') || timestampName())
@@ -36,6 +38,19 @@ export function BatchDialog({ links, settings, api, run, onClose, onCreated }: P
 
   const multi = groups.length > 1
   const base = baseFolder.replace(/[\\/]+$/, '')
+
+  // Disk guard: known size is what the resolver learned; hosts often report it only once downloading starts.
+  const knownSize = links.reduce((sum, l) => sum + l.totalBytes, 0)
+  const lowSpace = disk !== null && knownSize > 0 && knownSize > disk.free
+
+  useEffect(() => {
+    let live = true
+    const id = setTimeout(() => void api.diskSpace(baseFolder).then((d) => live && setDisk(d)), 250)
+    return () => {
+      live = false
+      clearTimeout(id)
+    }
+  }, [baseFolder, api])
 
   // The batches that will actually be created, in {name, linkIds} form.
   const plan = separate
@@ -55,7 +70,7 @@ export function BatchDialog({ links, settings, api, run, onClose, onCreated }: P
     setBusy(true)
     const created: Batch[] = []
     for (const p of plan) {
-      const batch = await run(api.createBatch({ name: p.name, baseFolder, extract, linkIds: p.ids }))
+      const batch = await run(api.createBatch({ name: p.name, baseFolder, extract, deleteArchives: extract && deleteArchives, linkIds: p.ids }))
       if (batch) created.push(batch)
     }
     setBusy(false)
@@ -90,6 +105,13 @@ export function BatchDialog({ links, settings, api, run, onClose, onCreated }: P
             Browse
           </Button>
         </div>
+        {disk && (
+          <div className={`disk-line ${lowSpace ? 'low' : ''}`}>
+            <Icon name={lowSpace ? 'alert' : 'database'} size={14} />
+            {formatBytes(disk.free)} free{knownSize > 0 ? ` · batch needs about ${formatBytes(knownSize)}` : ''}
+            {lowSpace ? ' — not enough space' : ''}
+          </div>
+        )}
       </div>
 
       {multi && (
@@ -146,6 +168,17 @@ export function BatchDialog({ links, settings, api, run, onClose, onCreated }: P
         </div>
         <Toggle checked={extract} onChange={setExtract} label="Extract archives after download" />
       </div>
+
+      {extract && (
+        <div className="switch-row">
+          <Icon name="trash" size={20} />
+          <div className="setting-text">
+            <div className="setting-label">Delete archives after extract</div>
+            <div className="setting-desc">Removes the original .rar/.zip files once a set extracts cleanly. Off keeps them.</div>
+          </div>
+          <Toggle checked={deleteArchives} onChange={setDeleteArchives} label="Delete archives after extract" />
+        </div>
+      )}
     </Modal>
   )
 }

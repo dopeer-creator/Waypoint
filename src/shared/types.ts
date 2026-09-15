@@ -52,6 +52,8 @@ export interface Batch {
   name: string
   dir: string
   extract: boolean
+  /** Delete the original archives once extraction succeeds. */
+  deleteArchives: boolean
   status: BatchStatus
   extractStatus: ExtractStatus
   extractError: string | null
@@ -105,6 +107,8 @@ export interface Settings {
   autoClickDownload: boolean
   winrarPath: string
   clipboardWatch: boolean
+  /** Delete original archives after a successful extraction (default off). */
+  deleteArchivesAfterExtract: boolean
   closeToTray: boolean
   maxResolveAttempts: number
   /** Use patchright + Turnstile-Solver-style bypass in automatic resolve mode. */
@@ -123,7 +127,20 @@ export interface CreateBatchInput {
   name: string
   baseFolder: string
   extract: boolean
+  deleteArchives: boolean
   linkIds: number[]
+}
+
+export interface DiskSpace {
+  free: number
+  total: number
+}
+
+/** Links found on the clipboard, offered to the user before adding. */
+export interface ClipboardOffer {
+  text: string
+  count: number
+  hosts: string[]
 }
 
 export interface EnvInfo {

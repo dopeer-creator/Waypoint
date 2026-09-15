@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events'
-import { mkdir } from 'node:fs/promises'
+import { mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import log from 'electron-log/main'
 import type { Batch, CreateBatchInput } from '../shared/types'
@@ -87,8 +87,8 @@ export class DownloadManager extends EventEmitter {
     await mkdir(dir, { recursive: true })
 
     this.dedupeFilenames(links)
-    const batch = this.store.insertBatch(name, dir, input.extract, links.map((l) => l.id))
-    this.settings.update({ baseFolder: input.baseFolder, extractDefault: input.extract })
+    const batch = this.store.insertBatch(name, dir, input.extract, input.deleteArchives, links.map((l) => l.id))
+    this.settings.update({ baseFolder: input.baseFolder, extractDefault: input.extract, deleteArchivesAfterExtract: input.deleteArchives })
 
     for (const link of this.store.linksInBatch(batch.id)) await this.addToAria2(link, false)
     this.ensurePolling()
@@ -270,6 +270,15 @@ export class DownloadManager extends EventEmitter {
 
   // Controls
 
+  /** Reorders a queued download; -1 earlier, +1 later. Also nudges aria2's own waiting queue to match. */
+  async moveLink(id: number, delta: number): Promise<void> {
+    const neighbour = this.store.moveLinkOrder(id, delta)
+    if (neighbour === null) return
+    const gid = this.gids.get(id)
+    if (gid) await this.aria2.call('aria2.changePosition', gid, delta, 'POS_CUR').catch(() => undefined)
+    this.emit('changed')
+  }
+
   async pauseLinks(ids: number[]): Promise<void> {
     for (const id of ids) {
       const gid = this.gids.get(id)
@@ -401,6 +410,10 @@ export class DownloadManager extends EventEmitter {
         for (const set of sets) {
           try {
             await extractArchive(winrar, set.first, batch.dir)
+            // Only remove the originals when the user asked and this set extracted cleanly.
+            if (batch.deleteArchives) {
+              for (const member of set.members) await rm(member, { force: true }).catch(() => undefined)
+            }
           } catch (err) {
             errors.push((err as Error).message)
           }

@@ -255,11 +255,14 @@ export function SettingsView({ settings, save, update, api, run, extensionConnec
             onBlur={() => winrarDraft !== settings.winrarPath && save({ winrarPath: winrarDraft.trim() })}
           />
         </Row>
+        <Row label="Delete archives after extract" desc="Default for new batches: remove the original .rar/.zip files once a set extracts cleanly. Each batch can override this.">
+          <Toggle label="Delete archives after extract" checked={settings.deleteArchivesAfterExtract} onChange={(v) => save({ deleteArchivesAfterExtract: v })} />
+        </Row>
       </div>
 
       <div className="card section">
         <h2>Behaviour</h2>
-        <Row label="Watch clipboard" desc="Links you copy anywhere are added to the Link Grabber automatically.">
+        <Row label="Watch clipboard" desc="When you copy links anywhere, Waypoint asks whether to add them.">
           <Toggle label="Watch clipboard" checked={settings.clipboardWatch} onChange={(v) => save({ clipboardWatch: v })} />
         </Row>
         <Row label="Close to tray" desc="Closing the window keeps Waypoint running in the system tray.">

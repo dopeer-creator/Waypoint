@@ -1,4 +1,4 @@
-import { cp } from 'node:fs/promises'
+import { cp, readFile, statfs } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import {
   app,
@@ -16,14 +16,14 @@ import log from 'electron-log/main'
 import { invokeMethods, type InvokeApi } from '../shared/api'
 import { CAPTURE_PORTS } from '../shared/extension'
 import { hrefsFromHtml } from '../shared/links'
-import type { AppSnapshot, Toast } from '../shared/types'
+import type { AppSnapshot, ClipboardOffer, Toast } from '../shared/types'
 import { Aria2 } from './aria2'
 import { installedHandoffBrowsers } from './browsers'
 import { CaptureServer } from './capture'
 import { Store } from './db'
 import { DownloadManager } from './downloads'
 import { findWinRAR } from './extract'
-import { extractUrls } from './links'
+import { extractUrls, hostOf } from './links'
 import { aria2Path, dbPath, extensionInstallDir, extensionSourceDir, iconPath, themesDir } from './paths'
 import { installedBrowsers, Resolver } from './resolver/resolver'
 import { SettingsService } from './settings'
@@ -218,7 +218,6 @@ function createTray(): void {
   tray.on('click', showWindow)
 }
 
-/** JDownloader-style clipboard capture: new URLs copied anywhere land in the Link Grabber. */
 /** Clipboard text plus the targets of any links in copied rich text, where URLs hide behind link text. */
 async function readClipboardLinks(): Promise<string> {
   const [text, items] = await Promise.all([clipboard.readText(), clipboard.read().catch(() => [])])
@@ -227,6 +226,10 @@ async function readClipboardLinks(): Promise<string> {
   return [text, ...hrefsFromHtml(html)].join('\n')
 }
 
+/**
+ * JDownloader-style clipboard capture: when new links are copied, ask the user before adding them rather than
+ * grabbing silently. The renderer shows the prompt and calls addLinks on a yes.
+ */
 async function watchClipboard(): Promise<void> {
   // Ignore whatever is already on the clipboard when watching starts.
   let last = await readClipboardLinks()
@@ -239,12 +242,12 @@ async function watchClipboard(): Promise<void> {
     if (text === last) return
     last = text
     const { urls } = extractUrls(text)
-    if (!urls.length) return
-    const { added } = store.insertLinks(urls)
-    if (added) {
-      toast('info', `Added ${added} link${added === 1 ? '' : 's'} from the clipboard`)
-      pushSnapshot()
-    }
+    // Only offer links that aren't already listed, so re-copying the same page doesn't nag.
+    const existing = new Set(store.listLinks().map((l) => l.url))
+    const fresh = urls.filter((u) => !existing.has(u))
+    if (!fresh.length) return
+    const hosts = [...new Set(fresh.map(hostOf))].filter(Boolean)
+    send('wp:clipboard-offer', { text: fresh.join('\n'), count: fresh.length, hosts } satisfies ClipboardOffer)
   }, 1000)
 }
 
@@ -271,6 +274,22 @@ function registerIpc(): void {
 
     addLinks: async (text) => {
       const { urls, invalid } = extractUrls(text)
+      const { added, duplicates } = store.insertLinks(urls)
+      pushSnapshot()
+      return { added, duplicates, invalid }
+    },
+    importLinks: async () => {
+      const result = await dialog.showOpenDialog(win!, {
+        title: 'Import links from a file',
+        properties: ['openFile'],
+        filters: [
+          { name: 'Link lists', extensions: ['txt', 'text', 'csv', 'md', 'html', 'htm'] },
+          { name: 'All files', extensions: ['*'] }
+        ]
+      })
+      if (result.canceled || !result.filePaths[0]) return null
+      const raw = await readFile(result.filePaths[0], 'utf8').catch(() => '')
+      const { urls, invalid } = extractUrls([raw, ...hrefsFromHtml(raw)].join('\n'))
       const { added, duplicates } = store.insertLinks(urls)
       pushSnapshot()
       return { added, duplicates, invalid }
@@ -305,12 +324,21 @@ function registerIpc(): void {
       })
       return result.canceled ? null : (result.filePaths[0] ?? null)
     },
+    diskSpace: async (path) => {
+      try {
+        const s = await statfs(path)
+        return { free: s.bsize * s.bavail, total: s.bsize * s.blocks }
+      } catch {
+        return null
+      }
+    },
     createBatch: async (input) => {
       const batch = await downloads.createBatch(input)
       pushSnapshot()
       return batch
     },
 
+    moveLink: async (id, delta) => downloads.moveLink(id, delta).then(pushSnapshot),
     pauseLinks: async (ids) => downloads.pauseLinks(ids).then(pushSnapshot),
     resumeLinks: async (ids) => downloads.resumeLinks(ids).then(pushSnapshot),
     pauseBatch: async (id) => downloads.pauseBatch(id).then(pushSnapshot),

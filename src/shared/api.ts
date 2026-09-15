@@ -2,7 +2,9 @@ import type {
   AddLinksResult,
   AppSnapshot,
   Batch,
+  ClipboardOffer,
   CreateBatchInput,
+  DiskSpace,
   EnvInfo,
   Settings,
   Toast,
@@ -17,6 +19,7 @@ export interface InvokeApi {
   getEnvironment(): Promise<EnvInfo>
 
   addLinks(text: string): Promise<AddLinksResult>
+  importLinks(): Promise<AddLinksResult | null>
   removeLinks(ids: number[]): Promise<void>
   retryLinks(ids: number[]): Promise<void>
 
@@ -25,8 +28,11 @@ export interface InvokeApi {
   resolverSkip(): Promise<void>
 
   pickFolder(defaultPath?: string): Promise<string | null>
+  diskSpace(path: string): Promise<DiskSpace | null>
   createBatch(input: CreateBatchInput): Promise<Batch>
 
+  /** Moves a queued download earlier (delta -1) or later (delta +1) in the queue. */
+  moveLink(id: number, delta: number): Promise<void>
   pauseLinks(ids: number[]): Promise<void>
   resumeLinks(ids: number[]): Promise<void>
   pauseBatch(id: number): Promise<void>
@@ -57,13 +63,16 @@ export const invokeMethods = [
   'setSettings',
   'getEnvironment',
   'addLinks',
+  'importLinks',
   'removeLinks',
   'retryLinks',
   'resolverStart',
   'resolverStop',
   'resolverSkip',
   'pickFolder',
+  'diskSpace',
   'createBatch',
+  'moveLink',
   'pauseLinks',
   'resumeLinks',
   'pauseBatch',
@@ -92,13 +101,15 @@ export interface EventApi {
   onSettings(cb: (settings: Settings) => void): () => void
   onUpdate(cb: (update: UpdateState) => void): () => void
   onToast(cb: (toast: Toast) => void): () => void
+  onClipboardOffer(cb: (offer: ClipboardOffer) => void): () => void
 }
 
 export const eventChannels = {
   onSnapshot: 'wp:snapshot',
   onSettings: 'wp:settings',
   onUpdate: 'wp:update',
-  onToast: 'wp:toast'
+  onToast: 'wp:toast',
+  onClipboardOffer: 'wp:clipboard-offer'
 } as const satisfies Record<keyof EventApi, string>
 
 export type WaypointApi = InvokeApi & EventApi

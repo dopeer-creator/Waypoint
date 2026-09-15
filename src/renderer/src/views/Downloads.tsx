@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import type { WaypointApi } from '@shared/api'
 import type { AppSnapshot, Batch, LinkItem } from '@shared/types'
 import { Icon } from '../components/Icons'
+import { SpeedGraph } from '../components/SpeedGraph'
 import { Button, Chip, IconButton, Progress, type Tone } from '../components/ui'
 import { formatBytes, formatDuration, formatEta, formatSpeed, percent } from '../lib/format'
 import { batchStatus, downloadStatus } from '../lib/status'
@@ -81,6 +82,7 @@ export function Downloads({ snapshot, api, run, onGoToGrabber }: Props) {
           ))}
         </div>
         <span className="spacer" />
+        <SpeedGraph speed={snapshot.stats.speed} />
         <Button size="sm" icon="pause" onClick={() => run(api.pauseAll())} disabled={!hasRunning}>
           Pause all
         </Button>
@@ -248,6 +250,12 @@ function FileRow({ link, api, run }: { link: LinkItem; api: WaypointApi; run: <T
         {label}
       </Chip>
       <div className="actions">
+        {(link.dlStatus === 'queued' || link.dlStatus === 'paused') && (
+          <>
+            <IconButton icon="chevronUp" label="Move up in queue" onClick={() => run(api.moveLink(link.id, -1))} />
+            <IconButton icon="chevronDown" label="Move down in queue" onClick={() => run(api.moveLink(link.id, 1))} />
+          </>
+        )}
         {(active || link.dlStatus === 'queued') && <IconButton icon="pause" label="Pause" onClick={() => run(api.pauseLinks([link.id]))} />}
         {link.dlStatus === 'paused' && <IconButton icon="play" label="Resume" onClick={() => run(api.resumeLinks([link.id]))} />}
         {link.dlStatus === 'error' && <IconButton icon="retry" label="Retry" onClick={() => run(api.retryLinks([link.id]))} />}

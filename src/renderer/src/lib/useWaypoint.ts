@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { AppSnapshot, Settings, Toast, UpdateState } from '@shared/types'
+import type { AppSnapshot, ClipboardOffer, Settings, Toast, UpdateState } from '@shared/types'
 
 const api = window.waypoint
 
@@ -23,6 +23,7 @@ export function useWaypoint() {
   const [settings, setSettingsState] = useState<Settings | null>(null)
   const [update, setUpdate] = useState<UpdateState>({ state: 'idle' })
   const [toasts, setToasts] = useState<ToastItem[]>([])
+  const [clipboardOffer, setClipboardOffer] = useState<ClipboardOffer | null>(null)
 
   const dismissToast = useCallback((id: number) => setToasts((list) => list.filter((t) => t.id !== id)), [])
 
@@ -38,7 +39,13 @@ export function useWaypoint() {
   useEffect(() => {
     void api.getSnapshot().then(setSnapshot)
     void api.getSettings().then(setSettingsState)
-    const offs = [api.onSnapshot(setSnapshot), api.onSettings(setSettingsState), api.onUpdate(setUpdate), api.onToast(pushToast)]
+    const offs = [
+      api.onSnapshot(setSnapshot),
+      api.onSettings(setSettingsState),
+      api.onUpdate(setUpdate),
+      api.onToast(pushToast),
+      api.onClipboardOffer(setClipboardOffer)
+    ]
     return () => offs.forEach((off) => off())
   }, [pushToast])
 
@@ -47,7 +54,9 @@ export function useWaypoint() {
     await api.setSettings(patch)
   }, [])
 
-  return { snapshot, settings, saveSettings, update, toasts, pushToast, dismissToast, api }
+  const clearClipboardOffer = useCallback(() => setClipboardOffer(null), [])
+
+  return { snapshot, settings, saveSettings, update, toasts, pushToast, dismissToast, clipboardOffer, clearClipboardOffer, api }
 }
 
 /** Runs an API call and turns a thrown error into a toast. */
