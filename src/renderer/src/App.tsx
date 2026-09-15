@@ -12,10 +12,11 @@ import { guard, useWaypoint } from './lib/useWaypoint'
 import { Downloads } from './views/Downloads'
 import { LinkGrabber } from './views/LinkGrabber'
 import { SettingsView } from './views/Settings'
+import { ThemesView } from './views/Themes'
 
-type View = 'grabber' | 'downloads' | 'settings'
+type View = 'grabber' | 'downloads' | 'themes' | 'settings'
 
-const TITLES: Record<View, string> = { grabber: 'Link Grabber', downloads: 'Downloads', settings: 'Settings' }
+const TITLES: Record<View, string> = { grabber: 'Link Grabber', downloads: 'Downloads', themes: 'Themes', settings: 'Settings' }
 const CORE_THEMES: ThemeId[] = THEMES.filter((t) => t.group === 'core').map((t) => t.id)
 const THEME_LABEL = Object.fromEntries(THEMES.map((t) => [t.id, t.label])) as Record<ThemeId, string>
 
@@ -60,6 +61,7 @@ export default function App() {
   const nav: { id: View; label: string; icon: IconName; badge?: number }[] = [
     { id: 'grabber', label: 'Link Grabber', icon: 'grabber', badge: grabberCount },
     { id: 'downloads', label: 'Downloads', icon: 'download', badge: downloading },
+    { id: 'themes', label: 'Themes', icon: 'contrast' },
     { id: 'settings', label: 'Settings', icon: 'sliders' }
   ]
 
@@ -190,6 +192,16 @@ export default function App() {
             />
           )}
           {view === 'downloads' && <Downloads snapshot={snapshot} api={api} run={run} onGoToGrabber={() => setView('grabber')} />}
+          {view === 'themes' && (
+            <ThemesView
+              settings={settings}
+              save={saveSettings}
+              api={api}
+              run={run}
+              themeMedia={snapshot.themeMedia}
+              onToast={(text) => pushToast({ kind: 'success', text })}
+            />
+          )}
           {view === 'settings' && (
             <SettingsView
               settings={settings}
@@ -198,7 +210,6 @@ export default function App() {
               api={api}
               run={run}
               extensionConnected={snapshot.extensionConnected}
-              themeMedia={snapshot.themeMedia}
               onToast={(text) => pushToast({ kind: 'success', text })}
             />
           )}
