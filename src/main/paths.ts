@@ -9,5 +9,10 @@ export function resourcesDir(): string {
 export const aria2Path = (): string => join(resourcesDir(), 'bin', 'aria2c.exe')
 export const iconPath = (name: 'icon.png' | 'icon.ico'): string => join(resourcesDir(), 'icons', name)
 
-export const dbPath = (): string => join(app.getPath('userData'), 'waypoint.db')
+/** Bundled browser extension. */
+export const extensionSourceDir = (): string => join(resourcesDir(), 'extension')
+/** Stable copy the user loads into their browser. App updates replace the install folder, so it can't live there. */
+export const extensionInstallDir = (): string => join(app.getPath('userData'), 'browser-extension')
+
+export const dbPath =(): string => join(app.getPath('userData'), 'waypoint.db')
 export const browserProfileDir = (channel: string): string => join(app.getPath('userData'), 'browser-profile', channel)

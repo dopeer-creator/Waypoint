@@ -7,7 +7,8 @@ const EMPTY: AppSnapshot = {
   links: [],
   batches: [],
   resolver: { running: false, phase: 'idle', current: 0, total: 0, currentLinkId: null, message: null },
-  stats: { speed: 0, active: 0, queued: 0, total: 0 }
+  stats: { speed: 0, active: 0, queued: 0, total: 0 },
+  extensionConnected: false
 }
 
 export interface ToastItem extends Toast {

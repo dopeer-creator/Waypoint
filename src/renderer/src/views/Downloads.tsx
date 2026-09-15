@@ -88,6 +88,18 @@ export function Downloads({ snapshot, api, run, onGoToGrabber }: Props) {
         </Button>
       </div>
 
+      <div className="row head dl-grid dl-head" aria-hidden>
+        <span />
+        <span>File</span>
+        <span>Progress</span>
+        <span>Downloaded</span>
+        <span>%</span>
+        <span>Speed</span>
+        <span>ETA</span>
+        <span>Status</span>
+        <span />
+      </div>
+
       <div>
         {visibleBatches.map((batch) => {
           const openByDefault = batch.status !== 'done'

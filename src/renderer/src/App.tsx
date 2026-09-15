@@ -159,11 +159,27 @@ export default function App() {
 
         <div className="content">
           {view === 'grabber' && (
-            <LinkGrabber snapshot={snapshot} api={api} run={run} pushToast={pushToast} onStartDownloads={(links) => links.length && setBatchLinks(links)} />
+            <LinkGrabber
+              snapshot={snapshot}
+              api={api}
+              run={run}
+              pushToast={pushToast}
+              onStartDownloads={(links) => links.length && setBatchLinks(links)}
+              settings={settings}
+              onOpenSettings={() => setView('settings')}
+            />
           )}
           {view === 'downloads' && <Downloads snapshot={snapshot} api={api} run={run} onGoToGrabber={() => setView('grabber')} />}
           {view === 'settings' && (
-            <SettingsView settings={settings} save={saveSettings} update={update} api={api} run={run} onToast={(text) => pushToast({ kind: 'success', text })} />
+            <SettingsView
+              settings={settings}
+              save={saveSettings}
+              update={update}
+              api={api}
+              run={run}
+              extensionConnected={snapshot.extensionConnected}
+              onToast={(text) => pushToast({ kind: 'success', text })}
+            />
           )}
         </div>
       </main>

@@ -1,4 +1,4 @@
-import type { Page } from 'playwright-core'
+import type { Page } from 'patchright'
 
 export type VerificationState =
   /** Full-page Cloudflare interstitial ("Just a moment..."). */

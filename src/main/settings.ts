@@ -10,13 +10,16 @@ export function defaultSettings(): Settings {
     maxConcurrent: 4,
     connectionsPerFile: 8,
     speedLimitKib: 0,
+    resolveMode: 'automated',
+    handoffBrowser: 'brave',
     browserChannel: 'chrome',
     resolveTimeoutSec: 300,
     autoClickDownload: true,
     winrarPath: '',
     clipboardWatch: false,
     closeToTray: false,
-    maxResolveAttempts: 3
+    maxResolveAttempts: 3,
+    turnstileBypass: true
   }
 }
 
@@ -57,7 +60,9 @@ export class SettingsService {
       resolveTimeoutSec: clamp(s.resolveTimeoutSec, 30, 3600, d.resolveTimeoutSec),
       maxResolveAttempts: clamp(s.maxResolveAttempts, 1, 10, d.maxResolveAttempts),
       theme: ['system', 'midnight', 'carbon', 'light'].includes(s.theme) ? s.theme : d.theme,
-      browserChannel: s.browserChannel === 'msedge' ? 'msedge' : 'chrome'
+      browserChannel: s.browserChannel === 'msedge' ? 'msedge' : 'chrome',
+      resolveMode: s.resolveMode === 'automated' ? 'automated' : 'handoff',
+      handoffBrowser: ['brave', 'chrome', 'edge', 'default'].includes(s.handoffBrowser) ? s.handoffBrowser : d.handoffBrowser
     }
   }
 }

@@ -9,6 +9,15 @@ export type ExtractStatus = 'off' | 'waiting' | 'running' | 'done' | 'error'
 export type ThemeId = 'system' | 'midnight' | 'carbon' | 'light'
 export type BrowserChannel = 'chrome' | 'msedge'
 
+/** Browser that hand-off resolving opens links in. */
+export type HandoffBrowser = 'brave' | 'chrome' | 'edge' | 'default'
+
+/**
+ * 'handoff': links open as normal tabs in the user's own browser; the Waypoint extension hands the download over.
+ * 'automated': Waypoint drives a separate Chrome itself (sites with Cloudflare checks usually reject this).
+ */
+export type ResolveMode = 'handoff' | 'automated'
+
 export interface LinkItem {
   id: number
   url: string
@@ -63,6 +72,8 @@ export interface AppSnapshot {
   batches: Batch[]
   resolver: ResolverState
   stats: AppStats
+  /** The browser extension has checked in recently. */
+  extensionConnected: boolean
 }
 
 export interface Settings {
@@ -73,6 +84,9 @@ export interface Settings {
   connectionsPerFile: number
   /** KiB/s, 0 = unlimited. */
   speedLimitKib: number
+  resolveMode: ResolveMode
+  handoffBrowser: HandoffBrowser
+  /** Browser for automated resolving. */
   browserChannel: BrowserChannel
   /** Seconds to wait on one link (including manual verification) before marking it failed. */
   resolveTimeoutSec: number
@@ -81,6 +95,8 @@ export interface Settings {
   clipboardWatch: boolean
   closeToTray: boolean
   maxResolveAttempts: number
+  /** Use patchright + Turnstile-Solver-style bypass in automatic resolve mode. */
+  turnstileBypass: boolean
 }
 
 export interface AddLinksResult {
@@ -102,6 +118,10 @@ export interface EnvInfo {
   aria2Ready: boolean
   aria2Version: string | null
   browsers: BrowserChannel[]
+  handoffBrowsers: HandoffBrowser[]
+  /** Folder the user loads into their browser as an unpacked extension. */
+  extensionFolder: string
+  extensionVersion: string | null
   userDataDir: string
 }
 

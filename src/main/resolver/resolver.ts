@@ -3,14 +3,17 @@ import { existsSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import log from 'electron-log/main'
-import { chromium, type BrowserContext, type Download, type Page } from 'playwright-core'
+import { chromium, type BrowserContext, type Download, type Page } from 'patchright'
 import type { BrowserChannel, ResolverState } from '../../shared/types'
+import { BROWSER_NAMES, openInBrowser } from '../browsers'
+import type { BrowserDownload, DownloadDecision } from '../capture'
 import type { LinkRecord, Store } from '../db'
 import { hostOf, sanitizeSegment } from '../links'
 import { browserProfileDir } from '../paths'
 import type { SettingsService } from '../settings'
 import type { HostAdapter } from './adapter'
 import { adapterFor } from './adapters'
+import { solveTurnstile } from './turnstile'
 
 /** How long to let Turnstile self-solve before asking the user to click it. */
 const SELF_SOLVE_GRACE_MS = 6000
@@ -31,6 +34,19 @@ class ResolveAborted extends Error {
 interface Captured {
   url: string
   filename: string
+}
+
+interface Resolved extends Captured {
+  headers: Record<string, string>
+}
+
+/** Rough registrable domain (cdn.files.example.co.uk → example.co.uk) so a host's download subdomains still match. */
+function siteOf(url: string): string {
+  const host = hostOf(url)
+  if (!host) return ''
+  const parts = host.split('.')
+  const twoPartSuffix = parts.length > 2 && parts.at(-1)!.length === 2 && ['co', 'com', 'net', 'org', 'ac', 'gov', 'edu'].includes(parts.at(-2)!)
+  return parts.slice(twoPartSuffix ? -3 : -2).join('.')
 }
 
 function deferred<T>() {
@@ -74,9 +90,11 @@ export function installedBrowsers(): BrowserChannel[] {
 }
 
 /**
- * Walks pending links one at a time in a single real-browser tab: loads the page, waits for Cloudflare
- * Turnstile (self-solve or user click), triggers the host's download, and captures the final file URL plus
- * the cookies needed to fetch it outside the browser.
+ * Walks pending links one at a time and captures each one's final file URL plus the cookies needed to fetch it
+ * outside the browser. Two modes:
+ * - handoff: open the link as a normal tab in the user's own browser; the user passes any check and clicks
+ *   Download, and the Waypoint extension reports the download here.
+ * - automated: drive a separate Chrome with Playwright, waiting on Turnstile and clicking the download itself.
  *
  * Events: 'state' (ResolverState), 'resolved' (linkId), 'failed' (linkId), 'finished', 'notice' (string).
  */
@@ -86,6 +104,9 @@ export class Resolver extends EventEmitter {
   private userAgent = ''
   private abort: AbortController | null = null
   private stopRequested = false
+  private handoff: { link: LinkRecord; result: ReturnType<typeof deferred<Resolved>> } | null = null
+  /** Set by the app: whether the browser extension has checked in recently. */
+  extensionConnected: () => boolean = () => false
 
   constructor(
     private readonly store: Store,
@@ -133,6 +154,27 @@ export class Resolver extends EventEmitter {
     this.abort?.abort('skip')
   }
 
+  /** Called for each download the browser extension reports. Takes it only if it came from the link being resolved. */
+  offerDownload(download: BrowserDownload): DownloadDecision {
+    const handoff = this.handoff
+    if (!handoff || handoff.result.settled) return { take: false, closeTab: false }
+
+    const site = siteOf(handoff.link.url)
+    const sources = [download.tabUrl, download.referrer, download.url].map(siteOf)
+    if (!site || !sources.includes(site)) {
+      // Most likely an ad's fake "Download" button; leave it to the browser.
+      log.info(`[handoff] ignored a download from ${hostOf(download.url)} while waiting on ${handoff.link.host}`)
+      return { take: false, closeTab: false }
+    }
+
+    const headers: Record<string, string> = {}
+    if (download.userAgent) headers['User-Agent'] = download.userAgent
+    if (download.cookies) headers.Cookie = download.cookies
+    if (download.referrer.startsWith('http')) headers.Referer = download.referrer
+    handoff.result.resolve({ url: download.url, filename: download.filename || handoff.link.filename || '', headers })
+    return { take: true, closeTab: true }
+  }
+
   async resetProfile(): Promise<void> {
     if (this.state.running) throw new Error('Stop resolving before resetting the browser profile')
     await rm(browserProfileDir(this.settings.get().browserChannel), { recursive: true, force: true })
@@ -150,14 +192,14 @@ export class Resolver extends EventEmitter {
     const attempts = link.resolveAttempts + 1
 
     try {
-      const context = await this.ensureContext()
-      const adapter = adapterFor(link.url)
-      const captured = await this.capture(context, link, adapter, this.abort.signal)
-      const headers = await this.requestHeaders(context, captured.url)
+      const captured =
+        this.settings.get().resolveMode === 'handoff'
+          ? await this.captureViaBrowser(link, this.abort.signal)
+          : await this.captureAutomated(link, this.abort.signal)
       this.store.updateLink(link.id, {
         status: 'resolved',
         directUrl: captured.url,
-        headers,
+        headers: captured.headers,
         filename: sanitizeSegment(captured.filename, `download-${link.id}`),
         resolveAttempts: attempts,
         error: null
@@ -191,6 +233,46 @@ export class Resolver extends EventEmitter {
     } finally {
       this.abort = null
     }
+  }
+
+  /**
+   * Hand-off: opens the link as an ordinary tab in the user's own browser. Nothing is automated, so Cloudflare
+   * sees a normal browser and a real person. Resolves when the extension reports a download from that site.
+   */
+  private async captureViaBrowser(link: LinkRecord, signal: AbortSignal): Promise<Resolved> {
+    const { handoffBrowser, resolveTimeoutSec } = this.settings.get()
+    const result = deferred<Resolved>()
+    const onAbort = () => result.reject(new ResolveAborted((signal.reason as StopReason) ?? 'stop'))
+    const timer = setTimeout(
+      () => result.reject(new Error(`No download started within ${resolveTimeoutSec}s`)),
+      resolveTimeoutSec * 1000
+    )
+    signal.addEventListener('abort', onAbort)
+    if (signal.aborted) onAbort()
+    this.handoff = { link, result }
+
+    try {
+      const name = BROWSER_NAMES[handoffBrowser]
+      this.setState({ phase: 'loading', message: `Opening the link in ${name}…` })
+      await openInBrowser(handoffBrowser, link.url)
+      this.setState({
+        phase: 'waiting-user',
+        message: this.extensionConnected()
+          ? `In ${name}: pass the check and click Download. Waypoint takes the file from there`
+          : `Waypoint's browser extension isn't connected. Set it up in Settings, then click Download in ${name}`
+      })
+      return await result.promise
+    } finally {
+      clearTimeout(timer)
+      signal.removeEventListener('abort', onAbort)
+      this.handoff = null
+    }
+  }
+
+  private async captureAutomated(link: LinkRecord, signal: AbortSignal): Promise<Resolved> {
+    const context = await this.ensureContext()
+    const captured = await this.capture(context, link, adapterFor(link.url), signal)
+    return { ...captured, headers: await this.requestHeaders(context, captured.url) }
   }
 
   private async ensureContext(): Promise<BrowserContext> {
@@ -265,7 +347,7 @@ export class Resolver extends EventEmitter {
       // Navigating straight to a file aborts the navigation but still fires a download; give that a moment to win.
       setTimeout(() => result.reject(new Error(`Could not open page: ${err.message.split('\n')[0]}`)), 2000)
     })
-    void this.drive(page, adapter, () => result.settled, signal)
+    void this.drive(context, page, adapter, () => result.settled, signal)
 
     try {
       return await result.promise
@@ -278,13 +360,30 @@ export class Resolver extends EventEmitter {
   }
 
   /** Watches verification state and nudges the page toward a download until the capture settles. */
-  private async drive(page: Page, adapter: HostAdapter, done: () => boolean, signal: AbortSignal): Promise<void> {
+  private async drive(
+    context: BrowserContext,
+    page: Page,
+    adapter: HostAdapter,
+    done: () => boolean,
+    signal: AbortSignal
+  ): Promise<void> {
     const started = Date.now()
     let clicks = 0
     let lastClick = 0
     let askedToVerify = false
     let askedToClick = false
     let verifiedAt = 0
+    let bypassRunning = false
+    let bypassFailed = false
+
+    const isVerified = async (): Promise<boolean> => {
+      try {
+        const state = await adapter.verificationState(page)
+        return state === 'solved' || state === 'none'
+      } catch {
+        return false
+      }
+    }
 
     while (!done() && !signal.aborted) {
       await sleep(POLL_MS)
@@ -298,11 +397,30 @@ export class Resolver extends EventEmitter {
       }
 
       if (state === 'challenge-page' || state === 'unsolved') {
+        const useBypass = this.settings.get().turnstileBypass
+        if (useBypass && !bypassRunning && !bypassFailed) {
+          bypassRunning = true
+          this.setState({ phase: 'verifying', message: 'Solving Cloudflare Turnstile…' })
+          const solved = await solveTurnstile(page, context, isVerified).catch(() => false)
+          bypassRunning = false
+          if (solved) {
+            verifiedAt = Date.now()
+            continue
+          }
+          bypassFailed = true
+          log.warn('[resolver] turnstile bypass failed, falling back to manual verification')
+        }
+
         if (!askedToVerify && Date.now() - started > SELF_SOLVE_GRACE_MS) {
           askedToVerify = true
           await page.bringToFront().catch(() => undefined)
-          this.setState({ phase: 'waiting-user', message: 'Complete the Cloudflare check in the browser window' })
-        } else if (!askedToVerify) {
+          this.setState({
+            phase: 'waiting-user',
+            message: useBypass
+              ? 'Turnstile bypass failed — complete the Cloudflare check in the browser window'
+              : 'Complete the Cloudflare check in the browser window'
+          })
+        } else if (!askedToVerify && !bypassRunning) {
           this.setState({ phase: 'verifying', message: 'Waiting for Cloudflare to verify…' })
         }
         continue

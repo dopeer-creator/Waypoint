@@ -1,4 +1,4 @@
-import type { Page } from 'playwright-core'
+import type { Page } from 'patchright'
 import type { HostAdapter, VerificationState } from './adapter'
 
 // Browser-side scripts are plain strings so the main-process build needs no DOM typings.

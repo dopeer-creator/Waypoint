@@ -14,13 +14,15 @@ asarUnpack:
   - node_modules/better-sqlite3/**
   - node_modules/bindings/**
   - node_modules/file-uri-to-path/**
-  - node_modules/playwright-core/**
+  - node_modules/patchright/**
 
 extraResources:
   - from: resources/bin
     to: bin
   - from: resources/icons
     to: icons
+  - from: resources/extension
+    to: extension
 
 win:
   target:

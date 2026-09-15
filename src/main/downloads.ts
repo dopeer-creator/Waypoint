@@ -6,7 +6,8 @@ import type { Batch, CreateBatchInput } from '../shared/types'
 import { Aria2, Aria2Error, type Aria2Status } from './aria2'
 import type { LinkRecord, Store } from './db'
 import { extractArchive, findWinRAR, groupArchives } from './extract'
-import { sanitizeSegment } from './links'
+import { hostOf, sanitizeSegment } from './links'
+import { RangeProxy } from './rangeproxy'
 import { adapterFor } from './resolver/adapters'
 import type { SettingsService } from './settings'
 
@@ -27,6 +28,9 @@ export class DownloadManager extends EventEmitter {
   private pollTimer: NodeJS.Timeout | null = null
   private polling = false
   private extractQueue: Promise<void> = Promise.resolve()
+  private readonly rangeProxy = new RangeProxy()
+  /** Links whose current aria2 download goes through the range relay. */
+  private readonly proxiedLinks = new Set<number>()
 
   constructor(
     private readonly store: Store,
@@ -53,6 +57,7 @@ export class DownloadManager extends EventEmitter {
   /** Starts aria2 and re-adds anything that was downloading when the app last closed. aria2 resumes from its .aria2 files. */
   async init(): Promise<void> {
     const s = this.settings.get()
+    await this.rangeProxy.start()
     await this.aria2.start({ maxConcurrent: s.maxConcurrent, speedLimitKib: s.speedLimitKib })
     for (const link of this.store.linksWithDownloadStatus(['queued', 'active', 'paused'])) {
       if (link.status === 'resolved') await this.addToAria2(link, link.dlStatus === 'paused')
@@ -68,6 +73,7 @@ export class DownloadManager extends EventEmitter {
     if (this.pollTimer) clearInterval(this.pollTimer)
     this.pollTimer = null
     await this.aria2.stop()
+    this.rangeProxy.stop()
   }
 
   async createBatch(input: CreateBatchInput): Promise<Batch> {
@@ -111,17 +117,22 @@ export class DownloadManager extends EventEmitter {
     const s = this.settings.get()
     const adapter = adapterFor(link.url)
     const connections = String(Math.min(s.connectionsPerFile, adapter.maxConnections ?? 16))
+    // Hosts that ignore range ends go through the local relay, which sends the link's headers itself.
+    const viaProxy = this.rangeProxy.handles(link.directUrl)
+    const uri = viaProxy ? this.rangeProxy.urlFor(link.id, link.directUrl, link.headers, link.filename) : link.directUrl
     const options: Record<string, string | string[]> = {
       dir: batch.dir,
-      header: Object.entries(link.headers).map(([k, v]) => `${k}: ${v}`),
+      header: viaProxy ? [] : Object.entries(link.headers).map(([k, v]) => `${k}: ${v}`),
       split: connections,
       'max-connection-per-server': connections,
       pause: paused ? 'true' : 'false'
     }
     if (link.filename) options.out = link.filename
     try {
-      const gid = await this.aria2.addUri(link.directUrl, options)
+      const gid = await this.aria2.addUri(uri, options)
       this.gids.set(link.id, gid)
+      if (viaProxy) this.proxiedLinks.add(link.id)
+      else this.proxiedLinks.delete(link.id)
       this.store.updateLink(link.id, {
         dlStatus: paused ? 'paused' : 'queued',
         path: link.filename ? join(batch.dir, link.filename) : link.path,
@@ -208,6 +219,16 @@ export class DownloadManager extends EventEmitter {
         this.forget(linkId)
         const code = status.errorCode ?? ''
         const message = status.errorMessage || `aria2 error ${code}`
+        // The host ignored a range end while aria2 resumed a file with gaps. Move this download (and the host's
+        // future ones) to the range relay and carry on from the same partial file. Checked per download, not per
+        // host: files that started directly before the host was flagged still need switching when they hit it.
+        if (code === '8' && /invalid range header/i.test(message) && link.directUrl && !this.proxiedLinks.has(linkId)) {
+          log.info(`[downloads] ${hostOf(link.directUrl)} ignores range ends; resuming link ${linkId} through the range relay`)
+          this.rangeProxy.markHost(link.directUrl)
+          this.store.updateLink(linkId, { dlStatus: 'queued', doneBytes: done, error: null })
+          void this.addToAria2({ ...link, doneBytes: done }, false).then(() => this.emit('changed'))
+          return null
+        }
         const looksExpired = EXPIRED_CODES.has(code) || /\b(401|403|404|410)\b/.test(message)
         if (looksExpired && link.resolveAttempts < this.settings.get().maxResolveAttempts) {
           log.info(`[downloads] link ${linkId} looks expired (${code}: ${message}); re-resolving`)

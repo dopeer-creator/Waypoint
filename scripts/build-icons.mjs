@@ -55,6 +55,12 @@ await writeFile(join(root, 'build', 'icon.png'), await png(tile(1024)))
 await writeFile(join(root, 'resources', 'icons', 'icon.png'), await png(tile(256)))
 await writeFile(join(root, 'resources', 'icons', 'icon.ico'), await pngToIco(icoPngs))
 
+// Browser extension icons.
+await mkdir(join(root, 'resources', 'extension', 'icons'), { recursive: true })
+for (const size of [16, 32, 48, 128]) {
+  await writeFile(join(root, 'resources', 'extension', 'icons', `${size}.png`), await png(size < 48 ? tinyTile(size) : tile(size)))
+}
+
 // Standalone transparent mark, plus a README banner matching the original logo.
 await writeFile(join(brand, 'mark-1024.png'), await sharp(Buffer.from(markSvg)).resize(1024, 1024).png().toBuffer())
 

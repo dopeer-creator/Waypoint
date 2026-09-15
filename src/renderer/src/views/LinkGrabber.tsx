@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { WaypointApi } from '@shared/api'
-import type { AppSnapshot, LinkItem, Toast } from '@shared/types'
+import type { AppSnapshot, LinkItem, ResolveMode, Settings, Toast } from '@shared/types'
 import { Mark } from '../components/Brand'
 import { Icon } from '../components/Icons'
 import { Button, Chip, IconButton, Progress } from '../components/ui'
@@ -19,9 +19,11 @@ interface Props {
   run: <T>(work: Promise<T>) => Promise<T | undefined>
   pushToast: (toast: Toast) => void
   onStartDownloads: (links: LinkItem[]) => void
+  settings: Settings
+  onOpenSettings: () => void
 }
 
-export function LinkGrabber({ snapshot, api, run, pushToast, onStartDownloads }: Props) {
+export function LinkGrabber({ snapshot, api, run, pushToast, onStartDownloads, settings, onOpenSettings }: Props) {
   const [text, setText] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [selected, setSelected] = useState<Set<number>>(new Set())
@@ -123,6 +125,9 @@ export function LinkGrabber({ snapshot, api, run, pushToast, onStartDownloads }:
 
       <ResolverPanel
         snapshot={snapshot}
+        mode={settings.resolveMode}
+        extensionConnected={snapshot.extensionConnected}
+        onSetup={onOpenSettings}
         pendingCount={pending.length}
         resolvedCount={resolved.length}
         failedCount={failed.length}
@@ -228,6 +233,9 @@ export function LinkGrabber({ snapshot, api, run, pushToast, onStartDownloads }:
 
 interface ResolverPanelProps {
   snapshot: AppSnapshot
+  mode: ResolveMode
+  extensionConnected: boolean
+  onSetup: () => void
   pendingCount: number
   resolvedCount: number
   failedCount: number
@@ -237,7 +245,19 @@ interface ResolverPanelProps {
   onDownload: () => void
 }
 
-function ResolverPanel({ snapshot, pendingCount, resolvedCount, failedCount, onStart, onStop, onSkip, onDownload }: ResolverPanelProps) {
+function ResolverPanel({
+  snapshot,
+  mode,
+  extensionConnected,
+  onSetup,
+  pendingCount,
+  resolvedCount,
+  failedCount,
+  onStart,
+  onStop,
+  onSkip,
+  onDownload
+}: ResolverPanelProps) {
   const r = snapshot.resolver
   const current = snapshot.links.find((l) => l.id === r.currentLinkId)
 
@@ -273,18 +293,29 @@ function ResolverPanel({ snapshot, pendingCount, resolvedCount, failedCount, onS
   }
 
   if (pendingCount > 0) {
+    const handoff = mode === 'handoff'
+    const needsSetup = handoff && !extensionConnected
     return (
-      <div className="card resolver">
+      <div className={`card resolver ${needsSetup ? 'attention' : ''}`}>
         <div className="resolver-icon">
-          <Icon name="shield" size={22} />
+          <Icon name={needsSetup ? 'alert' : 'shield'} size={22} />
         </div>
         <div className="resolver-body">
           <div className="resolver-title">{plural(pendingCount, 'link')} waiting to resolve</div>
           <div className="resolver-sub">
-            Each link opens in your browser, one tab at a time. Most Cloudflare checks pass on their own — if one doesn't, click it.
+            {needsSetup
+              ? "Waypoint's browser extension isn't connected. Set it up once, and downloads you start in your browser come straight here."
+              : handoff
+                ? 'Each link opens as a normal tab in your browser, one at a time. Pass the check and click Download, and Waypoint takes the file.'
+                : 'Each link opens in a browser Waypoint controls. Sites with Cloudflare checks usually reject that, so use "In your browser" mode for them.'}
           </div>
         </div>
         <div className="resolver-actions">
+          {needsSetup && (
+            <Button icon="sliders" onClick={onSetup}>
+              Set up extension
+            </Button>
+          )}
           {resolvedCount > 0 && (
             <Button icon="download" onClick={onDownload}>
               Download {resolvedCount} resolved

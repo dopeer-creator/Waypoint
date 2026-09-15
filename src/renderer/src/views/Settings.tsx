@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import type { WaypointApi } from '@shared/api'
-import type { EnvInfo, Settings, ThemeId, UpdateState } from '@shared/types'
+import type { EnvInfo, HandoffBrowser, Settings, ThemeId, UpdateState } from '@shared/types'
 import { Icon } from '../components/Icons'
 import { Button, NumberInput, Toggle } from '../components/ui'
 
@@ -10,6 +10,7 @@ interface Props {
   update: UpdateState
   api: WaypointApi
   run: <T>(work: Promise<T>) => Promise<T | undefined>
+  extensionConnected: boolean
   onToast: (text: string) => void
 }
 
@@ -19,6 +20,14 @@ const THEMES: { id: ThemeId; label: string; colors: [bg: string, side: string, b
   { id: 'carbon', label: 'Carbon', colors: ['#070708', '#0a0a0c', '#e9eaee', '#2b2d32'] },
   { id: 'light', label: 'Light', colors: ['#f3f5f9', '#ffffff', '#2563eb', '#d3dae5'] }
 ]
+
+const HANDOFF_LABEL: Record<HandoffBrowser, string> = { brave: 'Brave', chrome: 'Chrome', edge: 'Edge', default: 'Default' }
+const EXTENSIONS_PAGE: Record<HandoffBrowser, string> = {
+  brave: 'brave://extensions',
+  chrome: 'chrome://extensions',
+  edge: 'edge://extensions',
+  default: 'chrome://extensions'
+}
 
 function Row({ label, desc, children }: { label: string; desc?: ReactNode; children: ReactNode }) {
   return (
@@ -51,13 +60,15 @@ function updateText(update: UpdateState, version: string): string {
   }
 }
 
-export function SettingsView({ settings, save, update, api, run, onToast }: Props) {
+export function SettingsView({ settings, save, update, api, run, extensionConnected, onToast }: Props) {
   const [env, setEnv] = useState<EnvInfo | null>(null)
   const [winrarDraft, setWinrarDraft] = useState(settings.winrarPath)
+  const handoff = settings.resolveMode === 'handoff'
+  const browserName = settings.handoffBrowser === 'default' ? 'your browser' : HANDOFF_LABEL[settings.handoffBrowser]
 
   useEffect(() => {
     void api.getEnvironment().then(setEnv)
-  }, [api, settings.winrarPath])
+  }, [api, settings.winrarPath, extensionConnected])
 
   const browseFolder = async () => {
     const folder = await run(api.pickFolder(settings.baseFolder))
@@ -71,6 +82,11 @@ export function SettingsView({ settings, save, update, api, run, onToast }: Prop
     if (!ok) return
     const done = await run(api.resetBrowserProfile().then(() => true))
     if (done) onToast('Browser profile reset')
+  }
+
+  const copy = async (text: string, what: string) => {
+    const done = await run(api.copyText(text).then(() => true))
+    if (done) onToast(`${what} copied`)
   }
 
   const version = env?.version ?? '…'
@@ -123,35 +139,124 @@ export function SettingsView({ settings, save, update, api, run, onToast }: Prop
 
       <div className="card section">
         <h2>Link resolving</h2>
-        <Row label="Browser" desc="Waypoint drives your installed browser with its own separate profile, so your normal browsing isn't touched.">
+        <Row
+          label="Resolve links"
+          desc={
+            handoff
+              ? 'Links open as normal tabs in your own browser. You pass any Cloudflare check yourself and click Download; the Waypoint extension hands the file to Waypoint.'
+              : 'Waypoint opens links in Chrome/Edge via patchright and solves Cloudflare Turnstile automatically. Recommended for file hosts with bot checks.'
+          }
+        >
           <div className="segmented">
-            {(['chrome', 'msedge'] as const).map((channel) => (
-              <button
-                key={channel}
-                className={settings.browserChannel === channel ? 'active' : ''}
-                disabled={!!env && !env.browsers.includes(channel)}
-                onClick={() => save({ browserChannel: channel })}
-              >
-                {channel === 'chrome' ? 'Chrome' : 'Edge'}
-              </button>
-            ))}
+            <button className={handoff ? 'active' : ''} onClick={() => save({ resolveMode: 'handoff' })}>
+              In your browser
+            </button>
+            <button className={handoff ? '' : 'active'} onClick={() => save({ resolveMode: 'automated' })}>
+              Automatic
+            </button>
           </div>
         </Row>
-        <Row label="Auto-click download buttons" desc="After verification, click the most likely download button. Turn off to always click it yourself.">
-          <Toggle label="Auto-click download buttons" checked={settings.autoClickDownload} onChange={(v) => save({ autoClickDownload: v })} />
-        </Row>
-        <Row label="Time limit per link" desc="How long to wait on one link, including manual verification, before marking it failed.">
+
+        {handoff ? (
+          <>
+            <Row label="Open links in" desc="Your normal browser session, with your logins and cookies. The browser needs the Waypoint extension below.">
+              <div className="segmented">
+                {(['brave', 'chrome', 'edge', 'default'] as const).map((browser) => (
+                  <button
+                    key={browser}
+                    className={settings.handoffBrowser === browser ? 'active' : ''}
+                    disabled={!!env && !env.handoffBrowsers.includes(browser)}
+                    onClick={() => save({ handoffBrowser: browser })}
+                  >
+                    {HANDOFF_LABEL[browser]}
+                  </button>
+                ))}
+              </div>
+            </Row>
+            <div className="setting top">
+              <div className="setting-text">
+                <div className="setting-label">Browser extension</div>
+                <div className="setting-desc">
+                  {extensionConnected ? (
+                    <span className="status-line ok">
+                      <Icon name="checkCircle" size={14} /> Connected{env?.extensionVersion ? ` (v${env.extensionVersion})` : ''}
+                    </span>
+                  ) : (
+                    <span className="status-line bad">
+                      <Icon name="alert" size={14} /> Not connected. Install it in {browserName} once:
+                    </span>
+                  )}
+                </div>
+                <ol className="steps">
+                  <li>
+                    Click <strong>Copy page address</strong>, paste it into {browserName}'s address bar and press Enter.
+                  </li>
+                  <li>
+                    Turn on <strong>Developer mode</strong>.
+                  </li>
+                  <li>
+                    Click <strong>Load unpacked</strong> and choose this folder (<strong>Copy folder path</strong> and paste it into the folder box):
+                  </li>
+                </ol>
+                {env && <span className="path-chip">{env.extensionFolder}</span>}
+                <div className="setting-desc">
+                  The extension only acts while Waypoint is resolving a link, and only on downloads from that link's site. Other downloads stay in the
+                  browser.
+                </div>
+              </div>
+              <div className="setting-control column">
+                <Button icon="link" onClick={() => copy(EXTENSIONS_PAGE[settings.handoffBrowser], 'Page address')}>
+                  Copy page address
+                </Button>
+                <Button icon="file" onClick={() => env && copy(env.extensionFolder, 'Folder path')} disabled={!env}>
+                  Copy folder path
+                </Button>
+                <Button icon="folder" onClick={() => run(api.openExtensionFolder())}>
+                  Open folder
+                </Button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <Row label="Browser" desc="Waypoint drives your installed browser with its own separate profile, so your normal browsing isn't touched.">
+              <div className="segmented">
+                {(['chrome', 'msedge'] as const).map((channel) => (
+                  <button
+                    key={channel}
+                    className={settings.browserChannel === channel ? 'active' : ''}
+                    disabled={!!env && !env.browsers.includes(channel)}
+                    onClick={() => save({ browserChannel: channel })}
+                  >
+                    {channel === 'chrome' ? 'Chrome' : 'Edge'}
+                  </button>
+                ))}
+              </div>
+            </Row>
+            <Row
+              label="Turnstile bypass"
+              desc="Uses patchright (inspired by Turnstile-Solver) to click through Cloudflare Turnstile automatically. Falls back to manual verification if it fails."
+            >
+              <Toggle label="Turnstile bypass" checked={settings.turnstileBypass} onChange={(v) => save({ turnstileBypass: v })} />
+            </Row>
+            <Row label="Auto-click download buttons" desc="After verification, click the most likely download button. Turn off to always click it yourself.">
+              <Toggle label="Auto-click download buttons" checked={settings.autoClickDownload} onChange={(v) => save({ autoClickDownload: v })} />
+            </Row>
+            <Row label="Reset browser profile" desc="Clears the resolver browser's cookies and history.">
+              <Button variant="danger" icon="trash" onClick={resetProfile}>
+                Reset
+              </Button>
+            </Row>
+          </>
+        )}
+
+        <Row label="Time limit per link" desc="How long to wait on one link, including the check and clicking Download, before marking it failed.">
           <NumberInput label="Time limit per link" value={settings.resolveTimeoutSec} min={30} max={3600} onCommit={(n) => save({ resolveTimeoutSec: n })} />
           <span className="unit">sec</span>
         </Row>
         <Row label="Refresh attempts" desc="How many times an expired download link is re-resolved before the file is marked failed.">
           <NumberInput label="Refresh attempts" value={settings.maxResolveAttempts} min={1} max={10} onCommit={(n) => save({ maxResolveAttempts: n })} />
           <span className="unit">tries</span>
-        </Row>
-        <Row label="Reset browser profile" desc="Clears the resolver browser's cookies and history.">
-          <Button variant="danger" icon="trash" onClick={resetProfile}>
-            Reset
-          </Button>
         </Row>
       </div>
 

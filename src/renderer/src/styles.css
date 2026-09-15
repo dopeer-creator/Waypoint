@@ -1061,6 +1061,14 @@ kbd {
   overflow: hidden;
 }
 
+/* Column headings above the batch cards; the extra 1px matches the cards' border so columns line up. */
+.dl-head {
+  min-height: 28px;
+  margin-bottom: -8px;
+  padding: 0 17px;
+  border-top: 0;
+}
+
 .batch + .batch {
   margin-top: 12px;
 }
@@ -1255,6 +1263,43 @@ kbd {
 
 .status-line.bad svg {
   color: var(--warning);
+}
+
+.setting.top {
+  align-items: flex-start;
+}
+
+.setting-control.column {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.steps {
+  margin: 10px 0 6px;
+  padding-left: 20px;
+  color: var(--text-2);
+  font-size: 12.5px;
+  line-height: 1.75;
+  user-select: text;
+}
+
+.steps strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.path-chip {
+  display: inline-block;
+  margin: 0 0 8px 20px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  font-family: 'Cascadia Mono', Consolas, monospace;
+  font-size: 11.5px;
+  word-break: break-all;
+  user-select: text;
 }
 
 /* Modal */

@@ -1,3 +1,4 @@
+import { cp } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import {
   app,
@@ -13,14 +14,17 @@ import {
 } from 'electron'
 import log from 'electron-log/main'
 import { invokeMethods, type InvokeApi } from '../shared/api'
+import { CAPTURE_PORTS } from '../shared/extension'
 import { hrefsFromHtml } from '../shared/links'
 import type { AppSnapshot, Toast } from '../shared/types'
 import { Aria2 } from './aria2'
+import { installedHandoffBrowsers } from './browsers'
+import { CaptureServer } from './capture'
 import { Store } from './db'
 import { DownloadManager } from './downloads'
 import { findWinRAR } from './extract'
 import { extractUrls } from './links'
-import { aria2Path, dbPath, iconPath } from './paths'
+import { aria2Path, dbPath, extensionInstallDir, extensionSourceDir, iconPath } from './paths'
 import { installedBrowsers, Resolver } from './resolver/resolver'
 import { SettingsService } from './settings'
 import { Updater } from './updater'
@@ -51,6 +55,7 @@ let settings: SettingsService
 let resolver: Resolver
 let downloads: DownloadManager
 let updater: Updater
+let capture: CaptureServer
 
 /** Shows the main window, recreating it if it was closed (tray click or launching Waypoint again). */
 function showWindow(): void {
@@ -80,6 +85,7 @@ function snapshot(): AppSnapshot {
     links,
     batches: store.listBatches(),
     resolver: resolver.state,
+    extensionConnected: capture.connected,
     stats: {
       speed: inBatch.reduce((sum, l) => sum + l.speed, 0),
       active: inBatch.filter((l) => l.dlStatus === 'active').length,
@@ -251,6 +257,9 @@ function registerIpc(): void {
       aria2Ready: downloads.aria2.ready,
       aria2Version: downloads.aria2.version,
       browsers: installedBrowsers(),
+      handoffBrowsers: installedHandoffBrowsers(),
+      extensionFolder: extensionInstallDir(),
+      extensionVersion: capture.extensionVersion,
       userDataDir: app.getPath('userData')
     }),
 
@@ -317,6 +326,14 @@ function registerIpc(): void {
       await shell.openPath(dirname(log.transports.file.getFile().path))
     },
     resetBrowserProfile: async () => resolver.resetProfile(),
+    openExtensionFolder: async () => {
+      await syncExtensionFolder()
+      const error = await shell.openPath(extensionInstallDir())
+      if (error) toast('error', error)
+    },
+    copyText: async (text) => {
+      await clipboard.writeText(text)
+    },
     setTitleBar: async ({ color, symbolColor }) => {
       win?.setTitleBarOverlay({ color, symbolColor, height: 44 })
       win?.setBackgroundColor(color)
@@ -342,10 +359,20 @@ function registerIpc(): void {
   }
 }
 
+/** Copies the bundled extension to a stable folder the user loads into their browser, refreshing it after app updates. */
+async function syncExtensionFolder(): Promise<void> {
+  try {
+    await cp(extensionSourceDir(), extensionInstallDir(), { recursive: true, force: true })
+  } catch (err) {
+    log.warn('[extension] could not copy the extension folder', err)
+  }
+}
+
 async function cleanup(): Promise<void> {
   if (cleanedUp) return
   cleanedUp = true
   resolver.stop()
+  capture.stop()
   await downloads.shutdown().catch((err) => log.warn('aria2 shutdown failed', err))
   store.close()
 }
@@ -356,6 +383,12 @@ async function main(): Promise<void> {
   resolver = new Resolver(store, settings)
   downloads = new DownloadManager(store, settings, new Aria2(aria2Path()))
   updater = new Updater((state) => send('wp:update', state))
+
+  // The browser extension offers downloads here; the resolver takes the one it's waiting on.
+  capture = new CaptureServer(app.isPackaged ? CAPTURE_PORTS[0] : CAPTURE_PORTS[1])
+  capture.decide = (download) => resolver.offerDownload(download)
+  capture.on('status', () => pushSnapshot())
+  resolver.extensionConnected = () => capture.connected
 
   // Main also changes settings (e.g. remembering the last batch folder); keep the UI in sync.
   settings.onChange((next) => send('wp:settings', next))
@@ -410,6 +443,8 @@ async function main(): Promise<void> {
   })
 
   registerIpc()
+  capture.start()
+  void syncExtensionFolder()
   createWindow()
   ready = true
   createTray()

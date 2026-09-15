@@ -40,6 +40,8 @@ export interface InvokeApi {
   showInFolder(path: string): Promise<void>
   openLogs(): Promise<void>
   resetBrowserProfile(): Promise<void>
+  openExtensionFolder(): Promise<void>
+  copyText(text: string): Promise<void>
   setTitleBar(colors: { color: string; symbolColor: string }): Promise<void>
 
   checkForUpdates(): Promise<void>
@@ -71,6 +73,8 @@ export const invokeMethods = [
   'showInFolder',
   'openLogs',
   'resetBrowserProfile',
+  'openExtensionFolder',
+  'copyText',
   'setTitleBar',
   'checkForUpdates',
   'installUpdate'

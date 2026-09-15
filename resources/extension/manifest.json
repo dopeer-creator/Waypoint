@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Waypoint",
+  "short_name": "Waypoint",
+  "version": "1.0.0",
+  "description": "Hands downloads you start while Waypoint is resolving a link over to the Waypoint app on this PC.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzhxFceUlF6hLgQFfMXysWgo/OAyUfOgYEONRapEBmXIjQm5DQ13bNfmLSksICSI209hMhWiw06XBzPU6g7xUdMk9BUXf/oVL+VpdiACLUYfDfmgmw93ieW5b9/X1N6vwsAuf9azDPSgSfer3sZ350e3u/IXGzeJHlt9dFz7Lofpz1WXYOGhHo7tRF04+qq1yiFpRrZkgECUl8x32FtGsr7X75bGWVwAbKJbKAinK3kfsXmtXCLHYJa8qqDNXcHR+nk64yQFpJFm7meOGdFobO4OqsAnlV8J70KKg03RV81XxNSkVR75VBmq57xrf9Ij1sYkMlWYaeALu7md+ukac+QIDAQAB",
+  "minimum_chrome_version": "116",
+  "permissions": ["downloads", "cookies", "tabs", "alarms", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "background.js" },
+  "action": {
+    "default_title": "Waypoint",
+    "default_popup": "popup.html",
+    "default_icon": { "16": "icons/16.png", "32": "icons/32.png" }
+  },
+  "icons": { "16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png", "128": "icons/128.png" }
+}
