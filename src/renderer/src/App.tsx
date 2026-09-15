@@ -4,6 +4,7 @@ import type { LinkItem, ThemeId } from '@shared/types'
 import { BatchDialog } from './components/BatchDialog'
 import { Mark, Wordmark } from './components/Brand'
 import { Icon, type IconName } from './components/Icons'
+import { IntroSplash } from './components/IntroSplash'
 import { ThemeScene } from './components/ThemeScene'
 import { Toasts } from './components/Toasts'
 import { Button } from './components/ui'
@@ -44,6 +45,7 @@ function useResolvedTheme(theme: ThemeId | undefined): Exclude<ThemeId, 'system'
 export default function App() {
   const { snapshot, settings, saveSettings, update, toasts, pushToast, dismissToast, api } = useWaypoint()
   const [view, setView] = useState<View>('grabber')
+  const [intro, setIntro] = useState(true)
   const [batchLinks, setBatchLinks] = useState<LinkItem[] | null>(null)
   const theme = useResolvedTheme(settings?.theme)
   const run = useMemo(() => guard(pushToast), [pushToast])
@@ -91,6 +93,7 @@ export default function App() {
 
   return (
     <div className="app">
+      {intro && <IntroSplash onDone={() => setIntro(false)} />}
       <aside className="sidebar">
         <div className="brand drag">
           <Mark size={38} />
@@ -223,10 +226,10 @@ export default function App() {
           api={api}
           run={run}
           onClose={() => setBatchLinks(null)}
-          onCreated={(batch) => {
+          onCreated={(batches) => {
             setBatchLinks(null)
             setView('downloads')
-            pushToast({ kind: 'success', text: `Started "${batch.name}"` })
+            pushToast({ kind: 'success', text: batches.length === 1 ? `Started "${batches[0].name}"` : `Started ${batches.length} batches` })
           }}
         />
       )}

@@ -239,6 +239,9 @@ export class DownloadManager extends EventEmitter {
         this.store.updateLink(linkId, { dlStatus: 'error', doneBytes: done, error: message })
         return link.batchId
       }
+      default:
+        // Unexpected aria2 state: leave the link as-is rather than crashing the poll.
+        return null
     }
   }
 
@@ -246,6 +249,8 @@ export class DownloadManager extends EventEmitter {
     const gid = this.gids.get(linkId)
     this.gids.delete(linkId)
     this.speeds.delete(linkId)
+    this.proxiedLinks.delete(linkId)
+    this.rangeProxy.release(linkId)
     if (gid) this.aria2.call('aria2.removeDownloadResult', gid).catch(() => undefined)
   }
 
@@ -325,6 +330,8 @@ export class DownloadManager extends EventEmitter {
       if (gid) await this.aria2.remove(gid)
       this.gids.delete(link.id)
       this.speeds.delete(link.id)
+      this.proxiedLinks.delete(link.id)
+      this.rangeProxy.release(link.id)
     }
     this.store.deleteBatch(batchId)
     this.emit('changed')
@@ -337,6 +344,8 @@ export class DownloadManager extends EventEmitter {
       if (gid) await this.aria2.remove(gid)
       this.gids.delete(id)
       this.speeds.delete(id)
+      this.proxiedLinks.delete(id)
+      this.rangeProxy.release(id)
     }
   }
 
