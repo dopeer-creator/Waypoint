@@ -24,13 +24,17 @@ import { Store } from './db'
 import { DownloadManager } from './downloads'
 import { findWinRAR } from './extract'
 import { extractUrls } from './links'
-import { aria2Path, dbPath, extensionInstallDir, extensionSourceDir, iconPath } from './paths'
+import { aria2Path, dbPath, extensionInstallDir, extensionSourceDir, iconPath, themesDir } from './paths'
 import { installedBrowsers, Resolver } from './resolver/resolver'
 import { SettingsService } from './settings'
+import { registerThemeScheme, ThemeMedia } from './thememedia'
 import { Updater } from './updater'
 
 log.initialize()
 log.transports.file.level = 'info'
+
+// Must run before app 'ready'.
+registerThemeScheme()
 
 // Dev runs use plain electron.exe; a separate ID stops Windows caching its atom icon for the installed app.
 const APP_ID = app.isPackaged ? 'com.dopeercreator.waypoint' : 'com.dopeercreator.waypoint.dev'
@@ -56,6 +60,7 @@ let resolver: Resolver
 let downloads: DownloadManager
 let updater: Updater
 let capture: CaptureServer
+const themeMedia = new ThemeMedia()
 
 /** Shows the main window, recreating it if it was closed (tray click or launching Waypoint again). */
 function showWindow(): void {
@@ -86,6 +91,7 @@ function snapshot(): AppSnapshot {
     batches: store.listBatches(),
     resolver: resolver.state,
     extensionConnected: capture.connected,
+    themeMedia: themeMedia.snapshot(),
     stats: {
       speed: inBatch.reduce((sum, l) => sum + l.speed, 0),
       active: inBatch.filter((l) => l.dlStatus === 'active').length,
@@ -334,6 +340,19 @@ function registerIpc(): void {
     copyText: async (text) => {
       await clipboard.writeText(text)
     },
+    setThemeBackground: async (themeId) => {
+      const set = win ? await themeMedia.setFromDialog(win, themeId) : false
+      if (set) pushSnapshot()
+      return set
+    },
+    clearThemeBackground: async (themeId) => {
+      await themeMedia.clear(themeId)
+      pushSnapshot()
+    },
+    openThemesFolder: async () => {
+      const error = await shell.openPath(themesDir())
+      if (error) toast('error', error)
+    },
     setTitleBar: async ({ color, symbolColor }) => {
       win?.setTitleBarOverlay({ color, symbolColor, height: 44 })
       win?.setBackgroundColor(color)
@@ -444,6 +463,7 @@ async function main(): Promise<void> {
 
   registerIpc()
   capture.start()
+  void themeMedia.init()
   void syncExtensionFolder()
   createWindow()
   ready = true

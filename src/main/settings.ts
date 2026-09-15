@@ -1,4 +1,5 @@
 import { app } from 'electron'
+import { THEME_IDS } from '../shared/themes'
 import type { Settings } from '../shared/types'
 import type { Store } from './db'
 
@@ -19,7 +20,8 @@ export function defaultSettings(): Settings {
     clipboardWatch: false,
     closeToTray: false,
     maxResolveAttempts: 3,
-    turnstileBypass: true
+    turnstileBypass: true,
+    sceneDim: 55
   }
 }
 
@@ -59,7 +61,8 @@ export class SettingsService {
       speedLimitKib: clamp(s.speedLimitKib, 0, 10_000_000, 0),
       resolveTimeoutSec: clamp(s.resolveTimeoutSec, 30, 3600, d.resolveTimeoutSec),
       maxResolveAttempts: clamp(s.maxResolveAttempts, 1, 10, d.maxResolveAttempts),
-      theme: ['system', 'midnight', 'carbon', 'light'].includes(s.theme) ? s.theme : d.theme,
+      sceneDim: clamp(s.sceneDim, 0, 90, d.sceneDim),
+      theme: THEME_IDS.includes(s.theme) ? s.theme : d.theme,
       browserChannel: s.browserChannel === 'msedge' ? 'msedge' : 'chrome',
       resolveMode: s.resolveMode === 'automated' ? 'automated' : 'handoff',
       handoffBrowser: ['brave', 'chrome', 'edge', 'default'].includes(s.handoffBrowser) ? s.handoffBrowser : d.handoffBrowser

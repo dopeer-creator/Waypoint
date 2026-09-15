@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { WaypointApi } from '@shared/api'
 import type { AppSnapshot, Batch, LinkItem } from '@shared/types'
-import { Mark } from '../components/Brand'
 import { Icon } from '../components/Icons'
 import { Button, Chip, IconButton, Progress, type Tone } from '../components/ui'
 import { formatBytes, formatDuration, formatEta, formatSpeed, percent } from '../lib/format'
@@ -50,7 +49,9 @@ export function Downloads({ snapshot, api, run, onGoToGrabber }: Props) {
   if (!snapshot.batches.length) {
     return (
       <div className="empty">
-        <Mark size={56} />
+        <div className="empty-icon">
+          <Icon name="download" size={26} />
+        </div>
         <h3>Nothing downloading</h3>
         <p>Resolve links in the Link Grabber, then start a batch. Its files show up here.</p>
         <Button variant="primary" icon="grabber" onClick={onGoToGrabber}>

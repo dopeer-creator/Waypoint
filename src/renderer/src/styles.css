@@ -97,6 +97,178 @@
   color-scheme: light;
 }
 
+/* Destination themes. Colours and a faint --backdrop glow behind the content area; no artwork. */
+
+[data-theme='ragnarok'] {
+  --bg: #0a1016;
+  --sidebar: #0c141b;
+  --surface: #0e1720;
+  --card: #121d27;
+  --card-hover: #172532;
+  --border: #1d2b38;
+  --border-strong: #283a4a;
+  --text: #e6eef4;
+  --text-2: #93a9bb;
+  --text-3: #5e7384;
+  --primary: #d64541;
+  --primary-hover: #e2544f;
+  --on-primary: #ffffff;
+  --secondary: #7fb6d9;
+  --accent: #d9a441;
+  --success: #4fbf8a;
+  --warning: #e0a13a;
+  --error: #ff7a6e;
+  --track: #1a2733;
+  --nav-active: linear-gradient(90deg, rgba(214, 69, 65, 0.22), rgba(127, 182, 217, 0.04));
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  --mark-l1: #f3f8fb;
+  --mark-l2: #9cc4dd;
+  --mark-r1: #c6dcea;
+  --mark-r2: #5b87a6;
+  --mark-arc1: #d64541;
+  --mark-arc2: #5a1d1b;
+  --mark-star: #ffd9d6;
+  --backdrop: radial-gradient(1200px 600px at 85% -10%, rgba(127, 182, 217, 0.1), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(214, 69, 65, 0.1), transparent 60%);
+  color-scheme: dark;
+}
+
+[data-theme='jackdaw'] {
+  --bg: #0b1316;
+  --sidebar: #0d171a;
+  --surface: #0f1b1f;
+  --card: #13232a;
+  --card-hover: #182c34;
+  --border: #1f333a;
+  --border-strong: #2b454d;
+  --text: #efe4cb;
+  --text-2: #b3a78c;
+  --text-3: #7d735f;
+  --primary: #c9973f;
+  --primary-hover: #d8a84f;
+  --on-primary: #1a1206;
+  --secondary: #3aa19b;
+  --accent: #b5543a;
+  --success: #5fb58a;
+  --warning: #e0a13a;
+  --error: #e0604a;
+  --track: #1b2c32;
+  --nav-active: linear-gradient(90deg, rgba(201, 151, 63, 0.22), rgba(58, 161, 155, 0.04));
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  --mark-l1: #f6e7c1;
+  --mark-l2: #c9973f;
+  --mark-r1: #e2c27f;
+  --mark-r2: #8a6424;
+  --mark-arc1: #3aa19b;
+  --mark-arc2: #173f3d;
+  --mark-star: #fff3d6;
+  --backdrop: radial-gradient(1000px 500px at 100% 0%, rgba(58, 161, 155, 0.12), transparent 60%),
+    radial-gradient(800px 400px at 0% 100%, rgba(201, 151, 63, 0.08), transparent 60%);
+  color-scheme: dark;
+}
+
+[data-theme='nightcity'] {
+  --bg: #07070c;
+  --sidebar: #0a0a12;
+  --surface: #0c0c15;
+  --card: #10101b;
+  --card-hover: #161625;
+  --border: #1e1e30;
+  --border-strong: #2a2a42;
+  --text: #f2f2f7;
+  --text-2: #9d9db8;
+  --text-3: #666680;
+  --primary: #fcee0a;
+  --primary-hover: #fff45c;
+  --on-primary: #0a0a0a;
+  --secondary: #00e5ff;
+  --accent: #ff2a6d;
+  --success: #39ff9c;
+  --warning: #ffb020;
+  --error: #ff3b5c;
+  --track: #1a1a2a;
+  --nav-active: linear-gradient(90deg, rgba(252, 238, 10, 0.16), rgba(255, 42, 109, 0.05));
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  --mark-l1: #fff9a8;
+  --mark-l2: #fcee0a;
+  --mark-r1: #ff6b9a;
+  --mark-r2: #ff2a6d;
+  --mark-arc1: #00e5ff;
+  --mark-arc2: #004e59;
+  --mark-star: #00e5ff;
+  --backdrop: radial-gradient(900px 500px at 90% -10%, rgba(255, 42, 109, 0.12), transparent 60%),
+    radial-gradient(900px 500px at 0% 110%, rgba(0, 229, 255, 0.1), transparent 60%);
+  color-scheme: dark;
+}
+
+[data-theme='tsushima'] {
+  --bg: #0e0b0a;
+  --sidebar: #120e0c;
+  --surface: #15100e;
+  --card: #1a1411;
+  --card-hover: #221a16;
+  --border: #2a201b;
+  --border-strong: #3a2d26;
+  --text: #f3ebe2;
+  --text-2: #b8a797;
+  --text-3: #7f6f62;
+  --primary: #e2a93b;
+  --primary-hover: #efba52;
+  --on-primary: #1a1206;
+  --secondary: #a9b99b;
+  --accent: #c0392b;
+  --success: #8fbf6a;
+  --warning: #e39b2d;
+  --error: #e0503f;
+  --track: #251c17;
+  --nav-active: linear-gradient(90deg, rgba(226, 169, 59, 0.2), rgba(192, 57, 43, 0.05));
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  --mark-l1: #fff1cf;
+  --mark-l2: #e2a93b;
+  --mark-r1: #f0c27a;
+  --mark-r2: #9c6a1c;
+  --mark-arc1: #c0392b;
+  --mark-arc2: #4a1510;
+  --mark-star: #ffe9b8;
+  --backdrop: radial-gradient(1000px 500px at 100% 0%, rgba(226, 169, 59, 0.1), transparent 60%),
+    radial-gradient(700px 400px at 0% 100%, rgba(192, 57, 43, 0.1), transparent 60%);
+  color-scheme: dark;
+}
+
+[data-theme='wasteland'] {
+  --bg: #060906;
+  --sidebar: #080c08;
+  --surface: #0a0f0a;
+  --card: #0d140d;
+  --card-hover: #121b12;
+  --border: #1a261a;
+  --border-strong: #253625;
+  --text: #c9f7d1;
+  --text-2: #7fc28c;
+  --text-3: #4f7f58;
+  --primary: #3cf07a;
+  --primary-hover: #6bf599;
+  --on-primary: #031006;
+  --secondary: #e0c14a;
+  --accent: #ff8a3d;
+  --success: #3cf07a;
+  --warning: #e0c14a;
+  --error: #ff5a4a;
+  --track: #132013;
+  --nav-active: linear-gradient(90deg, rgba(60, 240, 122, 0.16), rgba(60, 240, 122, 0.02));
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  --mark-l1: #d8ffe0;
+  --mark-l2: #3cf07a;
+  --mark-r1: #9df5b3;
+  --mark-r2: #1b8a45;
+  --mark-arc1: #3cf07a;
+  --mark-arc2: #0f3a1c;
+  --mark-star: #d8ffe0;
+  --backdrop: repeating-linear-gradient(0deg, rgba(60, 240, 122, 0.025) 0 1px, transparent 1px 3px),
+    radial-gradient(900px 500px at 50% 0%, rgba(60, 240, 122, 0.08), transparent 60%);
+  color-scheme: dark;
+}
+
 :root {
   --primary-soft: color-mix(in srgb, var(--primary) 14%, transparent);
   --success-soft: color-mix(in srgb, var(--success) 14%, transparent);
@@ -380,6 +552,26 @@ a,
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  position: relative;
+  background-image: var(--backdrop, none);
+}
+
+/* Content sits above the animated theme scene. */
+.main > .topbar,
+.main > .content {
+  position: relative;
+  z-index: 1;
+}
+
+.empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--primary-soft);
+  color: var(--primary);
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
 }
 
 .topbar {
@@ -1199,9 +1391,33 @@ kbd {
   min-width: 40px;
 }
 
+.section-note {
+  margin: 0 0 4px;
+  color: var(--text-3);
+  font-size: 12.5px;
+}
+
+.range {
+  width: 200px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.theme-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.theme-name small {
+  color: var(--text-3);
+  font-size: 11.5px;
+  font-weight: 450;
+}
+
 .theme-cards {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: 12px;
   padding: 8px 0 18px;
 }

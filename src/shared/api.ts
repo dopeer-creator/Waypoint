@@ -42,6 +42,9 @@ export interface InvokeApi {
   resetBrowserProfile(): Promise<void>
   openExtensionFolder(): Promise<void>
   copyText(text: string): Promise<void>
+  setThemeBackground(themeId: string): Promise<boolean>
+  clearThemeBackground(themeId: string): Promise<void>
+  openThemesFolder(): Promise<void>
   setTitleBar(colors: { color: string; symbolColor: string }): Promise<void>
 
   checkForUpdates(): Promise<void>
@@ -75,6 +78,9 @@ export const invokeMethods = [
   'resetBrowserProfile',
   'openExtensionFolder',
   'copyText',
+  'setThemeBackground',
+  'clearThemeBackground',
+  'openThemesFolder',
   'setTitleBar',
   'checkForUpdates',
   'installUpdate'

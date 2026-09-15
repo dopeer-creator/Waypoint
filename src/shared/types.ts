@@ -6,7 +6,17 @@ export type DownloadStatus = 'none' | 'queued' | 'active' | 'paused' | 'complete
 export type BatchStatus = 'downloading' | 'paused' | 'extracting' | 'done' | 'error'
 export type ExtractStatus = 'off' | 'waiting' | 'running' | 'done' | 'error'
 
-export type ThemeId = 'system' | 'midnight' | 'carbon' | 'light'
+export type ThemeId =
+  | 'system'
+  | 'midnight'
+  | 'carbon'
+  | 'light'
+  | 'ragnarok'
+  | 'jackdaw'
+  | 'nightcity'
+  | 'tsushima'
+  | 'rapture'
+  | 'wasteland'
 export type BrowserChannel = 'chrome' | 'msedge'
 
 /** Browser that hand-off resolving opens links in. */
@@ -74,6 +84,8 @@ export interface AppSnapshot {
   stats: AppStats
   /** The browser extension has checked in recently. */
   extensionConnected: boolean
+  /** Destination themeId -> wallpaper file mtime; a present entry means the user set a custom background. */
+  themeMedia: Record<string, number>
 }
 
 export interface Settings {
@@ -97,6 +109,8 @@ export interface Settings {
   maxResolveAttempts: number
   /** Use patchright + Turnstile-Solver-style bypass in automatic resolve mode. */
   turnstileBypass: boolean
+  /** How much to darken a premium theme's background image so text stays readable, 0-90 (%). */
+  sceneDim: number
 }
 
 export interface AddLinksResult {

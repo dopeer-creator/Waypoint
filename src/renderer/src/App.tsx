@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
+import { THEMES } from '@shared/themes'
 import type { LinkItem, ThemeId } from '@shared/types'
 import { BatchDialog } from './components/BatchDialog'
 import { Mark, Wordmark } from './components/Brand'
 import { Icon, type IconName } from './components/Icons'
+import { ThemeScene } from './components/ThemeScene'
 import { Toasts } from './components/Toasts'
 import { Button } from './components/ui'
 import { formatSpeed } from './lib/format'
@@ -14,8 +16,17 @@ import { SettingsView } from './views/Settings'
 type View = 'grabber' | 'downloads' | 'settings'
 
 const TITLES: Record<View, string> = { grabber: 'Link Grabber', downloads: 'Downloads', settings: 'Settings' }
-const THEME_ORDER: ThemeId[] = ['system', 'midnight', 'carbon', 'light']
-const THEME_LABEL: Record<ThemeId, string> = { system: 'System', midnight: 'Midnight', carbon: 'Carbon', light: 'Light' }
+const CORE_THEMES: ThemeId[] = THEMES.filter((t) => t.group === 'core').map((t) => t.id)
+const THEME_LABEL = Object.fromEntries(THEMES.map((t) => [t.id, t.label])) as Record<ThemeId, string>
+
+/** Short decorative line shown in the sidebar for each premium theme. */
+const SCENE_TAGLINE: Partial<Record<ThemeId, string>> = {
+  ragnarok: 'The end is a doorway.',
+  jackdaw: 'No borders. Just files.',
+  nightcity: 'Same destination. Less friction.',
+  tsushima: '風を追え',
+  wasteland: '> download. repeat._'
+}
 
 function useResolvedTheme(theme: ThemeId | undefined): Exclude<ThemeId, 'system'> {
   const [dark, setDark] = useState(() => matchMedia('(prefers-color-scheme: dark)').matches)
@@ -52,8 +63,11 @@ export default function App() {
     { id: 'settings', label: 'Settings', icon: 'sliders' }
   ]
 
+  // The sidebar cycles only the lightweight core themes. Destination themes carry animated backgrounds, so they
+  // are set from Settings; cycling out of one lands on a plain dark theme.
   const cycleTheme = () => {
-    const next = THEME_ORDER[(THEME_ORDER.indexOf(settings.theme) + 1) % THEME_ORDER.length]
+    const i = CORE_THEMES.indexOf(settings.theme)
+    const next = i === -1 ? 'midnight' : CORE_THEMES[(i + 1) % CORE_THEMES.length]
     void saveSettings({ theme: next })
   }
 
@@ -105,6 +119,7 @@ export default function App() {
               </Button>
             </div>
           )}
+          {SCENE_TAGLINE[settings.theme] && <div className="scene-tagline">{SCENE_TAGLINE[settings.theme]}</div>}
           <button className="theme-switch" onClick={cycleTheme} title="Switch theme">
             <Icon name="contrast" size={20} />
             <span>
@@ -123,6 +138,11 @@ export default function App() {
       </aside>
 
       <main className="main">
+        <ThemeScene
+          theme={theme}
+          bgUrl={snapshot.themeMedia[theme] ? `wptheme://theme/${theme}?v=${snapshot.themeMedia[theme]}` : null}
+          dim={settings.sceneDim}
+        />
         <header className="topbar drag">
           <h1>{TITLES[view]}</h1>
           <div className="stats">
@@ -178,6 +198,7 @@ export default function App() {
               api={api}
               run={run}
               extensionConnected={snapshot.extensionConnected}
+              themeMedia={snapshot.themeMedia}
               onToast={(text) => pushToast({ kind: 'success', text })}
             />
           )}

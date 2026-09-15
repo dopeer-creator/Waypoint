@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { WaypointApi } from '@shared/api'
 import type { AppSnapshot, LinkItem, ResolveMode, Settings, Toast } from '@shared/types'
-import { Mark } from '../components/Brand'
 import { Icon } from '../components/Icons'
 import { Button, Chip, IconButton, Progress } from '../components/ui'
 import { hrefsFromHtml } from '@shared/links'
@@ -222,7 +221,9 @@ export function LinkGrabber({ snapshot, api, run, pushToast, onStartDownloads, s
 
       {links.length === 0 && !snapshot.resolver.running && (
         <div className="empty">
-          <Mark size={56} />
+          <div className="empty-icon">
+            <Icon name="link" size={26} />
+          </div>
           <h3>No links yet</h3>
           <p>Paste a batch of links above. Waypoint resolves them one by one in your browser, then downloads everything in parallel.</p>
         </div>

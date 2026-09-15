@@ -14,5 +14,8 @@ export const extensionSourceDir = (): string => join(resourcesDir(), 'extension'
 /** Stable copy the user loads into their browser. App updates replace the install folder, so it can't live there. */
 export const extensionInstallDir = (): string => join(app.getPath('userData'), 'browser-extension')
 
+/** User-supplied wallpapers for the premium themes: <userData>/themes/<themeId>.<ext>. */
+export const themesDir = (): string => join(app.getPath('userData'), 'themes')
+
 export const dbPath =(): string => join(app.getPath('userData'), 'waypoint.db')
 export const browserProfileDir = (channel: string): string => join(app.getPath('userData'), 'browser-profile', channel)

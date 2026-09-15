@@ -1,0 +1,436 @@
+/* Animated destination-theme backgrounds. Loaded once; each .scene-* only shows under its theme. */
+
+.scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.scene svg,
+.scene canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Paper grain for the parchment/ink themes. */
+.scene-jackdaw::before,
+.scene-tsushima::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+}
+
+/* User wallpaper layer: full-bleed image behind a readable scrim, shown only when data-photo. */
+.scene-photo {
+  position: absolute;
+  inset: 0;
+  background-image: var(--scene-bg);
+  background-size: cover;
+  background-position: center;
+}
+
+.scene-photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg) calc(var(--scene-dim, 0.55) * 100%), transparent), color-mix(in srgb, var(--bg) calc(var(--scene-dim, 0.55) * 100% + 12%), transparent));
+}
+
+.scene[data-photo='true'] .scene-art {
+  display: none;
+}
+
+/* Display and accent fonts per destination theme (bundled OFL faces + Windows fonts). */
+[data-theme='ragnarok'] {
+  --font-display: 'Cinzel', 'Constantia', Georgia, serif;
+  --font-accent: 'Cinzel', 'Constantia', Georgia, serif;
+}
+
+[data-theme='jackdaw'] {
+  --font-display: 'Cinzel', 'Constantia', Georgia, serif;
+  --font-accent: 'Pirata One', 'Constantia', Georgia, serif;
+}
+
+[data-theme='tsushima'] {
+  --font-display: 'Yu Mincho', 'Shippori Mincho', Georgia, serif;
+  --font-accent: 'Yu Mincho', 'Shippori Mincho', Georgia, serif;
+}
+
+[data-theme='nightcity'] {
+  --font-display: 'Rajdhani', 'Segoe UI', sans-serif;
+  --font-accent: 'Monoton', 'Rajdhani', sans-serif;
+}
+
+[data-theme='wasteland'] {
+  --font-display: 'Share Tech Mono', 'Cascadia Mono', monospace;
+  --font-accent: 'Share Tech Mono', 'Cascadia Mono', monospace;
+}
+
+/* Decorative sidebar line for each premium theme. */
+.scene-tagline {
+  font-family: var(--font-accent);
+  color: var(--primary);
+  font-size: 17px;
+  line-height: 1.3;
+  padding: 4px 12px 8px;
+  opacity: 0.85;
+  text-shadow: 0 0 12px color-mix(in srgb, var(--primary) 45%, transparent);
+}
+
+[data-theme='nightcity'] .scene-tagline {
+  font-size: 24px;
+  line-height: 1;
+}
+
+[data-theme='jackdaw'] .scene-tagline {
+  font-size: 20px;
+}
+
+[data-theme='ragnarok'] .topbar h1,
+[data-theme='jackdaw'] .topbar h1,
+[data-theme='tsushima'] .topbar h1,
+[data-theme='nightcity'] .topbar h1,
+[data-theme='wasteland'] .topbar h1,
+[data-theme='ragnarok'] .empty h3,
+[data-theme='jackdaw'] .empty h3,
+[data-theme='tsushima'] .empty h3,
+[data-theme='nightcity'] .empty h3,
+[data-theme='wasteland'] .empty h3,
+[data-theme='ragnarok'] .section h2,
+[data-theme='jackdaw'] .section h2,
+[data-theme='tsushima'] .section h2,
+[data-theme='nightcity'] .section h2,
+[data-theme='wasteland'] .section h2,
+[data-theme='ragnarok'] .resolver-title,
+[data-theme='jackdaw'] .resolver-title,
+[data-theme='tsushima'] .resolver-title,
+[data-theme='nightcity'] .resolver-title,
+[data-theme='wasteland'] .resolver-title {
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+}
+
+/* Night City and Wasteland read as consoles: squared cards, techy/mono body. */
+[data-theme='nightcity'] {
+  font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+  font-size: 14.5px;
+}
+
+[data-theme='wasteland'] {
+  font-family: 'Share Tech Mono', 'Cascadia Mono', monospace;
+}
+
+[data-theme='nightcity'] .card,
+[data-theme='wasteland'] .card,
+[data-theme='nightcity'] .btn,
+[data-theme='wasteland'] .btn {
+  border-radius: 4px;
+}
+
+[data-theme='wasteland'] .card {
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+[data-theme='nightcity'] .topbar h1,
+[data-theme='wasteland'] .topbar h1 {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 16px;
+}
+
+/* Ragnarök */
+.scene-ragnarok {
+  color: #cfe3ef;
+  opacity: 0.5;
+}
+
+.scene-ragnarok svg {
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.4));
+}
+
+.rag-serpent {
+  opacity: 0.28;
+  animation: rag-breathe 14s ease-in-out infinite;
+}
+
+.rag-frieze,
+.rag-wolf {
+  color: #d6cbb0;
+}
+
+.rag-runes path {
+  color: var(--primary);
+  animation: rag-ember 3.2s ease-in-out infinite;
+}
+
+.rag-runes path:nth-child(2) {
+  animation-delay: 0.6s;
+}
+.rag-runes path:nth-child(3) {
+  animation-delay: 1.1s;
+}
+.rag-runes path:nth-child(4) {
+  animation-delay: 1.7s;
+}
+
+.rag-embers {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(2px 2px at 20% 90%, rgba(214, 69, 65, 0.6), transparent),
+    radial-gradient(2px 2px at 45% 95%, rgba(226, 140, 60, 0.5), transparent),
+    radial-gradient(1.5px 1.5px at 70% 92%, rgba(214, 69, 65, 0.5), transparent),
+    radial-gradient(1.5px 1.5px at 85% 96%, rgba(226, 140, 60, 0.45), transparent);
+  background-repeat: repeat-x;
+  animation: rag-rise 9s linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes rag-ember {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.85; }
+}
+@keyframes rag-breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes rag-rise {
+  from { background-position: 0 0, 0 0, 0 0, 0 0; }
+  to { background-position: 0 -600px, 0 -700px, 0 -650px, 0 -720px; }
+}
+
+/* Jackdaw */
+.scene-jackdaw {
+  color: #d8b877;
+  opacity: 0.6;
+}
+
+.jd-compass {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: jd-spin 90s linear infinite;
+}
+
+.jd-route {
+  stroke-dashoffset: 0;
+  animation: jd-march 20s linear infinite;
+}
+
+.jd-ship {
+  transform-box: fill-box;
+  transform-origin: bottom center;
+  animation: jd-rock 7s ease-in-out infinite;
+}
+
+.jd-serpent {
+  animation: jd-bob 6s ease-in-out infinite;
+}
+
+@keyframes jd-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes jd-march {
+  to { stroke-dashoffset: -320; }
+}
+@keyframes jd-rock {
+  0%, 100% { transform: rotate(-2.5deg); }
+  50% { transform: rotate(2.5deg); }
+}
+@keyframes jd-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* Night City */
+.scene-nightcity {
+  color: var(--primary);
+  opacity: 0.75;
+}
+
+.scene-nightcity::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(600px 400px at 88% 82%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%),
+    radial-gradient(600px 400px at 10% 12%, color-mix(in srgb, var(--secondary) 18%, transparent), transparent 70%);
+  animation: nc-glow 5s ease-in-out infinite;
+}
+
+.nc-bars,
+.nc-arcs circle {
+  filter: drop-shadow(0 0 4px currentColor);
+}
+
+.nc-arcs {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: jd-spin 40s linear infinite;
+}
+
+.nc-scan {
+  opacity: 0.5;
+  filter: drop-shadow(0 0 6px currentColor);
+  animation: nc-sweep 6s linear infinite;
+}
+
+.nc-ticks {
+  animation: rag-ember 4s ease-in-out infinite;
+}
+
+@keyframes nc-glow {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+@keyframes nc-sweep {
+  0% { transform: translateY(120px); opacity: 0; }
+  10% { opacity: 0.6; }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(820px); opacity: 0; }
+}
+
+/* Tsushima */
+.scene-tsushima {
+  color: #b8482f;
+  opacity: 0.75;
+}
+
+.ts-sun {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ts-pulse 8s ease-in-out infinite;
+}
+
+.ts-mountain,
+.ts-branch {
+  color: #8a6f52;
+}
+
+.ts-leaf {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ts-fall 12s linear infinite;
+}
+.ts-leaf2 {
+  animation-duration: 16s;
+  animation-delay: -4s;
+}
+.ts-leaf3 {
+  animation-duration: 14s;
+  animation-delay: -8s;
+}
+
+.ts-ink {
+  mix-blend-mode: screen;
+}
+
+@keyframes ts-pulse {
+  0%, 100% { opacity: 0.14; transform: scale(1); }
+  50% { opacity: 0.24; transform: scale(1.04); }
+}
+@keyframes ts-fall {
+  0% { transform: translate(0, -40px) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.5; }
+  90% { opacity: 0.5; }
+  100% { transform: translate(120px, 620px) rotate(220deg); opacity: 0; }
+}
+
+/* Wasteland */
+.scene-wasteland {
+  background: #050805;
+}
+
+.wl-rain {
+  opacity: 0.5;
+}
+
+.wl-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.28) 0 1px, transparent 1px 3px);
+  animation: wl-roll 8s linear infinite;
+}
+
+.wl-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 100% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.6));
+}
+
+@keyframes wl-roll {
+  from { background-position: 0 0; }
+  to { background-position: 0 6px; }
+}
+
+/* Premium chrome — frosted panels over the wallpaper, plus per-theme accents. */
+[data-theme='ragnarok'] .content .card,
+[data-theme='jackdaw'] .content .card,
+[data-theme='nightcity'] .content .card,
+[data-theme='tsushima'] .content .card,
+[data-theme='wasteland'] .content .card,
+[data-theme='ragnarok'] .paste,
+[data-theme='jackdaw'] .paste,
+[data-theme='nightcity'] .paste,
+[data-theme='tsushima'] .paste,
+[data-theme='wasteland'] .paste {
+  background: color-mix(in srgb, var(--card) 82%, transparent);
+  backdrop-filter: blur(7px);
+}
+
+/* Night City — neon-edged panels and buttons. */
+[data-theme='nightcity'] .content .card {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 22%, transparent), 0 0 24px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+[data-theme='nightcity'] .btn-primary {
+  box-shadow: 0 0 18px color-mix(in srgb, var(--primary) 45%, transparent);
+}
+
+[data-theme='nightcity'] .nav-item.active {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 40%, transparent), 0 0 16px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+/* Wasteland — terminal prompts. */
+[data-theme='wasteland'] .section h2::before,
+[data-theme='wasteland'] .empty h3::before {
+  content: '> ';
+  opacity: 0.7;
+}
+
+[data-theme='wasteland'] .nav-item.active::after {
+  content: '_';
+  margin-left: 4px;
+  animation: wl-blink 1.1s steps(1) infinite;
+}
+
+@keyframes wl-blink {
+  50% { opacity: 0; }
+}
+
+/* Ragnarök & Jackdaw — warmer double-line frames. */
+[data-theme='ragnarok'] .content .card,
+[data-theme='jackdaw'] .content .card {
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-3) 22%, transparent);
+}
+
+[data-theme='ragnarok'] .topbar h1,
+[data-theme='jackdaw'] .topbar h1 {
+  letter-spacing: 0.06em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene *,
+  .scene::after,
+  .scene::before {
+    animation: none !important;
+  }
+}

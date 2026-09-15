@@ -12,6 +12,16 @@ Waypoint is a Windows batch download manager in the spirit of JDownloader, built
 
 Downloads survive restarts: aria2 resumes from its `.aria2` control files the next time Waypoint opens.
 
+## Themes
+
+Settings → Appearance has four core themes (also cycled from the sidebar) and five animated **destination** themes — Ragnarök, Jackdaw, Night City, Tsushima, and Wasteland. Each has its own colours, fonts, chrome, and a code-drawn animated background (Matrix code rain, neon glow, ink that follows the cursor, and so on).
+
+Give a destination theme a photoreal look with your own wallpaper:
+
+- In Settings, pick a destination theme, then **Choose image…** — or drop an image straight into `%APPDATA%\Waypoint\themes\` named after the theme, e.g. `nightcity.jpg`, `tsushima.png` (`jpg`, `jpeg`, `png`, `webp`, `avif`, `gif`). **Open themes folder** opens that location.
+- The image shows behind a readable scrim (tune it with **Background dimming**) while the animation plays on top.
+- Images stay on your PC. Waypoint never uploads them, and none ship with the app — so use whatever wallpaper you like. The bundled themes ship only original, code-drawn art.
+
 ## Requirements
 
 - Windows 10 or 11 (x64)
