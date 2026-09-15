@@ -33,11 +33,23 @@ jobs:
 
       - run: npm run typecheck
 
+      # Pull this version's notes from CHANGELOG.md (the section under "## <tag>"); fall back to auto notes.
+      - name: Release notes
+        shell: bash
+        run: |
+          awk -v v="$GITHUB_REF_NAME" '$0=="## "v{f=1;next} /^## /{if(f)exit} f' CHANGELOG.md > notes.md || true
+          if [ -s notes.md ]; then echo "have_notes=true" >> "$GITHUB_ENV"; else echo "have_notes=false" >> "$GITHUB_ENV"; fi
+
       # Create the release up front. electron-builder uploads its files in parallel, and without an existing
       # release each upload can create its own, splitting the files across duplicate releases.
       - name: Create draft release
         shell: bash
-        run: gh release create "$GITHUB_REF_NAME" --draft --title "Waypoint ${GITHUB_REF_NAME#v}" --generate-notes
+        run: |
+          if [ "$have_notes" = "true" ]; then
+            gh release create "$GITHUB_REF_NAME" --draft --title "Waypoint ${GITHUB_REF_NAME#v}" --notes-file notes.md
+          else
+            gh release create "$GITHUB_REF_NAME" --draft --title "Waypoint ${GITHUB_REF_NAME#v}" --generate-notes
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
