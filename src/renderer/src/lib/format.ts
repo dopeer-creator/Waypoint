@@ -11,7 +11,12 @@ export const formatSpeed = (bps: number): string => (bps > 0 ? `${formatBytes(bp
 
 export function formatEta(remainingBytes: number, bps: number): string {
   if (bps <= 0 || remainingBytes <= 0) return '—'
-  const s = Math.round(remainingBytes / bps)
+  return formatDuration(remainingBytes / bps)
+}
+
+export function formatDuration(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) return '—'
+  const s = Math.round(seconds)
   if (s < 60) return `${s}s`
   const m = Math.floor(s / 60)
   if (m < 60) return `${m}m ${String(s % 60).padStart(2, '0')}s`

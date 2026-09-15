@@ -4,7 +4,7 @@ import type { AppSnapshot, Batch, LinkItem } from '@shared/types'
 import { Mark } from '../components/Brand'
 import { Icon } from '../components/Icons'
 import { Button, Chip, IconButton, Progress, type Tone } from '../components/ui'
-import { formatBytes, formatEta, formatSpeed, percent } from '../lib/format'
+import { formatBytes, formatDuration, formatEta, formatSpeed, percent } from '../lib/format'
 import { batchStatus, downloadStatus } from '../lib/status'
 
 type Filter = 'all' | 'active' | 'queued' | 'completed' | 'failed'
@@ -147,6 +147,12 @@ function BatchCard({ batch, links, filter, open, onToggle, api, run }: BatchCard
   const completed = links.filter((l) => l.dlStatus === 'complete').length
   const allSized = links.every((l) => l.totalBytes > 0)
   const pct = percent(done, total)
+  // Files download side by side, so the batch finishes when its slowest file does. Use whichever is later:
+  // everything left at the combined speed, or the slowest active file's own ETA.
+  const slowestFileSec = links
+    .filter((l) => l.dlStatus === 'active' && l.speed > 0)
+    .reduce((max, l) => Math.max(max, (l.totalBytes - l.doneBytes) / l.speed), 0)
+  const batchEtaSec = Math.max(slowestFileSec, speed > 0 ? (total - done) / speed : 0)
   const [label, tone] = batchStatus(batch)
   const barTone: Tone = batch.status === 'done' ? 'success' : batch.status === 'error' ? 'error' : batch.status === 'paused' ? 'warning' : batch.status === 'extracting' ? 'accent' : 'primary'
   const allComplete = links.length > 0 && completed === links.length
@@ -175,7 +181,7 @@ function BatchCard({ batch, links, filter, open, onToggle, api, run }: BatchCard
         </span>
         <span className="num strong">{Math.floor(pct)}%</span>
         <span className="num">{formatSpeed(speed)}</span>
-        <span className="num">{batch.status === 'downloading' ? formatEta(total - done, speed) : '—'}</span>
+        <span className="num">{batch.status === 'downloading' ? formatDuration(batchEtaSec) : '—'}</span>
         <Chip tone={tone} pulse={batch.status === 'extracting'} title={batch.extractError ?? undefined}>
           {label}
         </Chip>
