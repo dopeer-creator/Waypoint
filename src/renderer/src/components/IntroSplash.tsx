@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Wordmark } from './Brand'
 
 const FULL_MS = 2600
@@ -9,18 +9,22 @@ const REDUCED_MS = 700
  * apart and fade to reveal the app. Honours prefers-reduced-motion (a short fade instead). Calls onDone when gone.
  */
 export function IntroSplash({ onDone }: { onDone: () => void }) {
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const [reduced] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   const [leaving, setLeaving] = useState(false)
+  // Keep the latest onDone without restarting the timers: the parent re-renders often, and re-running this effect
+  // would reset the dismiss timer while the CSS animation keeps playing — leaving a blank overlay that never lifts.
+  const onDoneRef = useRef(onDone)
+  onDoneRef.current = onDone
 
   useEffect(() => {
     const total = reduced ? REDUCED_MS : FULL_MS
     const fade = setTimeout(() => setLeaving(true), total - 350)
-    const done = setTimeout(onDone, total)
+    const done = setTimeout(() => onDoneRef.current(), total)
     return () => {
       clearTimeout(fade)
       clearTimeout(done)
     }
-  }, [onDone, reduced])
+  }, [reduced])
 
   return (
     <div className={`intro ${reduced ? 'reduced' : ''} ${leaving ? 'leaving' : ''}`} aria-hidden>

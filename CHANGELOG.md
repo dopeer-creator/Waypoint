@@ -2,6 +2,16 @@
 
 All notable changes to Waypoint. Newest first.
 
+## v0.5.0
+Automatic resolving actually runs to the end now.
+
+- **A whole batch resolves from one click.** The browser closing mid-run used to abort everything still in flight, so only the one link that had already finished survived and you had to press Resolve again for each file. Links in flight now go back to the queue, the browser reopens by itself, and the run carries on.
+- **Chrome stops quitting mid-run.** Waypoint only ever needed the download's URL — aria2 fetches the file — but it was letting Chrome start the download and then cancelling, and Chrome exited about 200ms later, taking every other tab's link with it. It now declines the download up front.
+- **Better download-button detection.** Ad links dressed up as "Download" are ignored, buttons wired purely to a JS click handler are found, and a control gets two attempts before it's passed over (some hosts open an ad on the first click and only start the download on the second).
+- **One check at a time.** When a link does need you to pass a Cloudflare check, only that tab asks and comes to the front; the rest wait quietly and can't time out while you're busy with it.
+- **Removed the Turnstile bypass.** Automatic mode detects a check and hands it to you instead of trying to solve it.
+- Fixed a blank window on launch when the app re-rendered during the startup animation.
+
 ## v0.4.0
 Queue control, safety checks, and more ways to add links.
 

@@ -115,7 +115,7 @@ export function SettingsView({ settings, save, update, api, run, extensionConnec
           desc={
             handoff
               ? 'Links open as normal tabs in your own browser. You pass any Cloudflare check yourself and click Download; the Waypoint extension hands the file to Waypoint.'
-              : 'Waypoint opens links in Chrome/Edge via patchright and solves Cloudflare Turnstile automatically. Recommended for file hosts with bot checks.'
+              : 'Waypoint opens each link in its own Chrome/Edge window and clicks the download button for you. You complete any Cloudflare check in that window.'
           }
         >
           <div className="segmented">
@@ -203,12 +203,6 @@ export function SettingsView({ settings, save, update, api, run, extensionConnec
                   </button>
                 ))}
               </div>
-            </Row>
-            <Row
-              label="Turnstile bypass"
-              desc="Uses patchright (inspired by Turnstile-Solver) to click through Cloudflare Turnstile automatically. Falls back to manual verification if it fails."
-            >
-              <Toggle label="Turnstile bypass" checked={settings.turnstileBypass} onChange={(v) => save({ turnstileBypass: v })} />
             </Row>
             <Row label="Auto-click download buttons" desc="After verification, click the most likely download button. Turn off to always click it yourself.">
               <Toggle label="Auto-click download buttons" checked={settings.autoClickDownload} onChange={(v) => save({ autoClickDownload: v })} />

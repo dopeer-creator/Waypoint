@@ -111,8 +111,6 @@ export interface Settings {
   deleteArchivesAfterExtract: boolean
   closeToTray: boolean
   maxResolveAttempts: number
-  /** Use patchright + Turnstile-Solver-style bypass in automatic resolve mode. */
-  turnstileBypass: boolean
   /** How much to darken a premium theme's background image so text stays readable, 0-90 (%). */
   sceneDim: number
 }

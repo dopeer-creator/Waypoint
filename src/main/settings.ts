@@ -21,7 +21,6 @@ export function defaultSettings(): Settings {
     deleteArchivesAfterExtract: false,
     closeToTray: false,
     maxResolveAttempts: 3,
-    turnstileBypass: true,
     sceneDim: 55
   }
 }
