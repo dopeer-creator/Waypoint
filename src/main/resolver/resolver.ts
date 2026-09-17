@@ -16,11 +16,11 @@ import { adapterFor } from './adapters'
 
 const SELF_SOLVE_GRACE_MS = 6000
 const POLL_MS = 700
-const MAX_AUTO_CLICKS = 4
+const MAX_AUTO_CLICKS = 6
 const CLICK_COOLDOWN_MS = 4000
 const AUTO_CLICK_PROGRESS_DELAY_MS = 8000
 /** Browser automation workers; deliberately separate from aria2's download concurrency. */
-const AUTO_RESOLVE_CONCURRENCY = 4
+const AUTO_RESOLVE_CONCURRENCY = 6
 /** How long a link may sit waiting on the user — its turn to ask, then the check itself — before giving up. */
 const HUMAN_WAIT_BUDGET_MS = 5 * 60_000
 /** How many times a run will reopen the browser after it closes on its own before giving up on the run. */
@@ -556,6 +556,18 @@ export class Resolver extends EventEmitter {
     throw new Error(`Could not start Chrome or Edge: ${(lastError as Error)?.message?.split('\n')[0]}`)
   }
 
+  /**
+   * True when a captured filename is demonstrably some *other* pending link's file. Deliberately narrow: a name
+   * that merely differs from what we expected is fine (plenty of hosts rename on the way out), so this only
+   * rejects a download that matches another link's expected name and not our own.
+   */
+  private belongsToAnotherLink(filename: string, link: LinkRecord): boolean {
+    const got = filename.trim().toLowerCase()
+    const mine = (link.filename ?? '').trim().toLowerCase()
+    if (!got || !mine || got === mine) return false
+    return this.store.listLinks().some((other) => other.id !== link.id && (other.filename ?? '').trim().toLowerCase() === got)
+  }
+
   /** Guarantees a blank tab stays open, so a worker tab closing can never take the browser down with it. */
   private async ensureKeeper(context: BrowserContext): Promise<void> {
     if (this.keeperPage && !this.keeperPage.isClosed()) return
@@ -591,6 +603,15 @@ export class Resolver extends EventEmitter {
     const onDownload = (download: Download) => {
       const url = download.url()
       const filename = download.suggestedFilename()
+
+      // Several tabs resolve the same host at once, and their ad popups fire downloads all over the place. A
+      // download that is plainly another pending link's file is not ours: taking it would resolve this link to
+      // the wrong URL, so the batch quietly downloads one part twice and never gets this one.
+      if (this.belongsToAnotherLink(filename, link)) {
+        log.warn(`[resolver] link ${link.id}: ignored a download for ${filename} — that is another link's file`)
+        return
+      }
+
       log.info(`[resolver] link ${link.id}: download captured from ${hostOf(url)} (${filename})`)
       // No cancel needed: the context refuses downloads, so Chrome never started writing this file.
       result.resolve({ url, filename, referer: page.url() })
@@ -734,11 +755,11 @@ export class Resolver extends EventEmitter {
           })
         }
 
-        const clicked = await adapter.triggerDownload(page).catch(() => false)
+        const clicked = await adapter.triggerDownload(page).catch(() => null)
         if (clicked) {
           clicks++
           lastClick = Date.now()
-          log.info(`[resolver] link ${linkId}: auto-click ${clicks}/${MAX_AUTO_CLICKS} landed`)
+          log.info(`[resolver] link ${linkId}: auto-click ${clicks}/${MAX_AUTO_CLICKS} landed on ${clicked}`)
           continue
         }
         if (clicks === 0 && Date.now() - verifiedAt > AUTO_CLICK_PROGRESS_DELAY_MS && !loggedNoButton) {

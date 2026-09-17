@@ -2,6 +2,16 @@
 
 All notable changes to Waypoint. Newest first.
 
+## v0.6.0
+Hosts that make you click through several steps now resolve on their own.
+
+- **Multi-step hosts.** Waypoint follows a host through "Continue to Download" → "Free Download" → "Start Download" instead of only recognising a single button, so hosts that split the free download over several pages resolve without you.
+- **Countdowns are waited out, not clicked.** A button that says "Ready in 7s" or "Preparing your download" is left alone until it arms, so the wait no longer burns the link's click attempts.
+- **Never clicks a paid control.** Anything reading as Premium, Upgrade, Torrent, a price, or a sign-in is excluded outright — auto-clicking must never wander into a purchase.
+- **Six links at a time**, up from four, and six click attempts per link. Most of a multi-step host's time is spent waiting on its own countdown, so more of that now overlaps.
+- **Fixed: a link could capture another link's file.** With several tabs on one host, a download from one tab could be picked up by another, so one part of an archive downloaded twice and another never arrived — an extraction that failed only at the end of a very large download. A link now refuses a file that plainly belongs to a different link and waits for its own.
+- The log now names the control each auto-click landed on, which is what makes an unfamiliar host diagnosable.
+
 ## v0.5.0
 Automatic resolving actually runs to the end now.
 
