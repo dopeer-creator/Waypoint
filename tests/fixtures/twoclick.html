@@ -1,0 +1,25 @@
+<!doctype html><meta charset="utf-8"><title>Download ACBF — twoclick host</title>
+<style>body{font:14px system-ui;padding:40px}a,button{display:inline-block;padding:14px 22px;margin:8px;border:0;border-radius:8px;font:inherit;cursor:pointer}
+.primary{background:#2563eb;color:#fff}.ad{background:#eee;color:#333}</style>
+<h1>The_Crust.part1.rar</h1>
+
+<!-- ad decoys: off-site anchors dressed as Download. must never be picked -->
+<a class="ad" href="https://ads.example.net/out?c=1">Download</a>
+<a class="ad" href="https://link-file-abc.shop/g">Free Download</a>
+
+<!-- the real control: no href, driven purely by a JS click handler.
+     first click opens an "ad", only the second starts the download -->
+<a class="primary" id="go">Download</a>
+
+<script>
+  // State goes on the DOM, not window: patchright's page.evaluate runs in an isolated world and can't
+  // see page globals, but both worlds share the DOM.
+  const flag = (name) => { document.documentElement.dataset[name] = '1' }
+  let clicks = 0
+  document.getElementById('go').addEventListener('click', () => {
+    clicks++
+    document.documentElement.dataset.clicks = String(clicks)
+    if (clicks === 1) { flag('adOpened'); return }
+    flag('downloaded')
+  })
+</script>

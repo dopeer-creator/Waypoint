@@ -1,0 +1,72 @@
+<!doctype html><meta charset="utf-8"><title>Download ACBF — multistep host</title>
+<style>body{font:14px system-ui;padding:40px}button{display:block;padding:16px 24px;margin:10px 0;border:0;border-radius:8px;font:inherit;cursor:pointer;text-align:left}
+.primary{background:#2563eb;color:#fff}.dark{background:#111;color:#fff}.grad{background:#7c3aed;color:#fff}
+small{display:block;opacity:.8;font-size:12px}</style>
+<h1>ACBF_Resynced.part02.rar <small>2.0 GB</small></h1>
+<div id="app"></div>
+
+<script>
+  // State goes on the DOM, not window: patchright's page.evaluate runs in an isolated world and can't
+  // see page globals, but both worlds share the DOM.
+  const flag = (name) => { document.documentElement.dataset[name] = '1' }
+  const app = document.getElementById('app')
+  const COUNTDOWN = 2 // seconds; the real host uses ~10
+
+  function step1() {
+    app.innerHTML = ''
+    const b = document.createElement('button')
+    b.className = 'primary'
+    b.textContent = 'Continue to Download'
+    b.onclick = step2
+    app.append(b)
+  }
+
+  function step2() {
+    app.innerHTML = ''
+    document.documentElement.dataset.step = '2'
+
+    const free = document.createElement('button')
+    free.className = 'primary'
+    free.innerHTML = 'Free Download<small>Standard speed</small>'
+    free.onclick = countdown
+
+    // paid decoys: clicking either is a purchase flow. must never be picked.
+    const prem = document.createElement('button')
+    prem.className = 'dark'
+    prem.innerHTML = 'Premium Download<small>Instant &amp; unlimited</small>'
+    prem.onclick = () => flag('boughtPremium')
+
+    const tor = document.createElement('button')
+    tor.className = 'grad'
+    tor.textContent = 'Torrent'
+
+    const skip = document.createElement('button')
+    skip.className = 'dark'
+    skip.innerHTML = 'Skip the wait, start your download instantly<small>from $0.16/day</small>'
+    skip.onclick = () => flag('boughtPremium')
+
+    app.append(free, prem, tor, skip)
+  }
+
+  function countdown() {
+    app.innerHTML = ''
+    document.documentElement.dataset.step = 'countdown'
+    const b = document.createElement('button')
+    b.className = 'primary'
+    let left = COUNTDOWN
+    const paint = () => { b.innerHTML = 'Ready in ' + left + 's<small>Preparing your download</small>' }
+    paint()
+    b.onclick = () => flag('clickedTooEarly') // armed only after the countdown
+    app.append(b)
+    const t = setInterval(() => {
+      left--
+      if (left > 0) { paint(); return }
+      clearInterval(t)
+      document.documentElement.dataset.step = 'armed'
+      b.innerHTML = 'Start Download<small>Your file is ready</small>'
+      b.onclick = () => flag('downloaded')
+    }, 1000)
+  }
+
+  step1()
+</script>

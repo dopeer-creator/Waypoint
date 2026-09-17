@@ -18,7 +18,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "icons": "node scripts/build-icons.mjs",
     "dist": "npm run build && electron-builder --win",
-    "release": "npm run build && electron-builder --win --publish always"
+    "release": "npm run build && electron-builder --win --publish always",
+    "test:picker": "node tests/picker-test.mjs"
   },
   "dependencies": {
     "@fontsource/cinzel": "^5.3.0",

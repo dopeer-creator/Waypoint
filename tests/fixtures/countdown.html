@@ -1,0 +1,67 @@
+<!doctype html><meta charset="utf-8"><title>Download — countdown host (filekeeper-shaped)</title>
+<style>body{font:14px system-ui;padding:30px;display:grid;grid-template-columns:1fr 320px;gap:24px}
+nav{grid-column:1/-1;display:flex;gap:14px;align-items:center}
+button,a.btn{display:inline-block;padding:12px 20px;border:0;border-radius:8px;font:inherit;cursor:pointer}
+.primary{background:#2563eb;color:#fff}.plain{background:#eee;color:#222}
+aside{background:#f4f7ff;padding:18px;border-radius:12px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:24px;margin-bottom:16px}</style>
+
+<nav>
+  <a href="/">Home</a>
+  <a href="/premium">Premium PRO</a>
+  <button class="plain">Sign In</button>
+  <button class="primary">Get Started</button>
+</nav>
+
+<main>
+  <div class="card">
+    <p>SECURE LINK ACTIVE</p>
+    <h2>ACBF_Resynced_CRACKED.part01.rar</h2>
+    <p>2.0 GB · RAR</p>
+    <button class="plain">Report</button>
+  </div>
+
+  <div class="card">
+    <h3>Preparing your download</h3>
+    <div id="slot"></div>
+  </div>
+</main>
+
+<aside>
+  <p>PREMIUM BOOST</p>
+  <h3>Faster downloads</h3>
+  <button class="primary">Upgrade to Premium</button>
+  <button class="plain">Join Discord</button>
+</aside>
+
+<script>
+  // State goes on the DOM, not window: patchright's page.evaluate runs in an isolated world and can't
+  // see page globals, but both worlds share the DOM.
+  const flag = (name) => { document.documentElement.dataset[name] = '1' }
+  const slot = document.getElementById('slot')
+  const WAIT = 5 // seconds, as the real host does
+
+  let left = WAIT
+  document.documentElement.dataset.step = 'counting'
+  const paint = () => { slot.innerHTML = '<p>' + left + '</p><p>Generating download link...</p>' }
+  paint()
+
+  const t = setInterval(() => {
+    left--
+    if (left > 0) { paint(); return }
+    clearInterval(t)
+    document.documentElement.dataset.step = 'armed'
+    slot.innerHTML = '<p>Your download link is ready</p>'
+
+    const go = document.createElement('button')
+    go.className = 'primary'
+    go.textContent = 'Free download'
+    go.onclick = () => flag('downloaded')
+
+    const fallback = document.createElement('p')
+    fallback.innerHTML = 'If the download doesn\'t start automatically, <a href="#" id="fb">click here.</a>'
+
+    slot.append(go, fallback)
+    document.getElementById('fb').onclick = (e) => { e.preventDefault(); flag('downloaded') }
+  }, 1000)
+</script>
