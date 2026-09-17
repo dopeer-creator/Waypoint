@@ -15,14 +15,43 @@ Dropping a `.txt` / `.csv` / `.html` file onto the Link Grabber should import th
 
 ## 2. Third host: filekeeper
 
-Work out filekeeper's flow and make the generic picker handle it, the same way datanodes was done.
+**Investigated and measured; the fix is written but parked.** Not merged, because it couldn't be proven safe for
+the hosts that already work.
 
-- Write a fixture first that reproduces its steps, run it against the **current** picker to get a baseline, then
-  change the picker and re-run both it and the existing fixtures. A host is only "done" when the earlier hosts
-  still pass unchanged.
-- Only reach for a host-specific adapter in `src/main/resolver/adapters.ts` if a genuine quirk can't be expressed
-  generically — every quirk pushed into the generic engine is one fewer adapter to maintain.
-- Keep the rule that no auto-click ever lands on a paid or account control.
+What was measured (by driving a real link in the resolver's own browser, with `acceptDownloads: false` so nothing
+large is written):
+
+- **filekeeper is not slow and not complex.** Its download fires on the *main page* about **1.0s** after the
+  click. There is no delivery popup and no long wait.
+- **The blocker is a popunder ad.** The page loads a third-party script that calls `window.open` from a click
+  handler; it swallows the click meant for `#download-button`, so the host's own handler never runs. Clicking
+  again just feeds it another ad. This is why the host behaves in Brave, which blocks those scripts.
+- **Blocking ad domains does not work.** Block one network and a different one takes over on the next load.
+- **Refusing cross-site `window.open` does work** — same click, file in 1.0s, no popups.
+
+Why it wasn't merged: it couldn't be verified against fuckingfast, whose only available link had expired (every
+run failed identically with and without the change, on two profiles). The rule is inert on fuckingfast — that
+host opens its popups from `target="_blank"` anchors, not `window.open` — but that is an argument, not a
+measurement.
+
+The work is parked on the local branch `filekeeper-popup-experiment` (`6dc7220`), with the findings in its commit
+message. Recover with `git cherry-pick 6dc7220`.
+
+To finish it: get a **live** fuckingfast link, run it with and without the rule, and merge only if the working
+host is unaffected.
+
+Two things to carry into any future attempt:
+
+- **Run the thing, don't reason from logs.** Two plausible theories here ("slow host", "we close the delivery
+  popup") were both wrong, and both survived several rounds of log-reading. One real run settled it.
+- **Ad chains serve fake files named after the real one** (a `.zip` carrying the user's filename was observed).
+  The resolver attaches download listeners to every popup, so it could capture one and hand a malware URL to
+  aria2. Worth a guard regardless of how the clicking is solved.
+
+Still true for any new host: write a fixture in `tests/fixtures`, baseline it against the **current** picker, then
+change the picker and re-run `npm run test:picker`. A host is only done when the earlier hosts click the same
+controls in the same order. Prefer the generic engine over a host adapter in `src/main/resolver/adapters.ts`, and
+never let an auto-click land on a paid or account control.
 
 ## 3. Clipboard prompt is too aggressive
 
