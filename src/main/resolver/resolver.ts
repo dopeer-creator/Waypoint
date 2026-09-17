@@ -73,6 +73,8 @@ interface Captured {
   filename: string
   /** Main-page URL that initiated the browser download, used as the aria2 Referer. */
   referer: string
+  /** Bytes, from the Content-Length of the response that became the download; 0 when the host didn't say. */
+  size: number
 }
 
 interface Resolved extends Captured {
@@ -252,7 +254,10 @@ export class Resolver extends EventEmitter {
       url: download.url,
       filename: download.filename || handoff.link.filename || '',
       headers,
-      referer: download.referrer
+      referer: download.referrer,
+      // The extension reports what the browser told it, which doesn't include the size; aria2 fills it in once
+      // the download starts, as it always did for this mode.
+      size: 0
     })
     return { take: true, closeTab: true }
   }
@@ -402,6 +407,10 @@ export class Resolver extends EventEmitter {
         directUrl: captured.url,
         headers: captured.headers,
         filename: sanitizeSegment(captured.filename, `download-${link.id}`),
+        // Known now, from the response that became the download. Without this a batch only knows the size of the
+        // few files aria2 has actually started, so its total reads as a lower bound and the disk-space guard is
+        // working off a fraction of the real figure. Left alone when the host didn't say.
+        ...(captured.size > 0 ? { totalBytes: captured.size } : {}),
         resolveAttempts: attempts,
         error: null
       })
@@ -612,9 +621,27 @@ export class Resolver extends EventEmitter {
         return
       }
 
-      log.info(`[resolver] link ${link.id}: download captured from ${hostOf(url)} (${filename})`)
+      const size = sizes.get(url) ?? lastAttachmentSize
+      log.info(
+        `[resolver] link ${link.id}: download captured from ${hostOf(url)} (${filename}${size ? `, ${size} bytes` : ', size unknown'})`
+      )
       // No cancel needed: the context refuses downloads, so Chrome never started writing this file.
-      result.resolve({ url, filename, referer: page.url() })
+      result.resolve({ url, filename, referer: page.url(), size })
+    }
+
+    // The response that turns into the download carries Content-Length, so the exact size is already on the wire
+    // here. Reading it costs nothing; asking the host separately would mean a second request against a link that
+    // is often single-use.
+    const sizes = new Map<string, number>()
+    let lastAttachmentSize = 0
+    const onResponse = (res: { url: () => string; headers: () => Record<string, string> }) => {
+      const headers = res.headers()
+      const len = Number(headers['content-length'] ?? 0)
+      if (!Number.isFinite(len) || len <= 0) return
+      sizes.set(res.url(), len)
+      // Redirect chains mean the download's final URL may not be the one we saw, so keep the last attachment
+      // response as a fallback.
+      if (/attachment/i.test(headers['content-disposition'] ?? '')) lastAttachmentSize = len
     }
 
     // Every tab this link's page opens. They're all closed when the link finishes, so nothing is left behind.
@@ -623,6 +650,7 @@ export class Resolver extends EventEmitter {
       popups.add(popup)
       popup.once('close', () => popups.delete(popup))
       popup.on('download', onDownload)
+      popup.on('response', onResponse)
       this.closeAdPopup(popup, page, link.id)
     }
 
@@ -637,6 +665,7 @@ export class Resolver extends EventEmitter {
 
     page.on('download', onDownload)
     page.on('popup', onPopup)
+    page.on('response', onResponse)
     signal.addEventListener('abort', onAbort)
     if (signal.aborted) onAbort()
 
@@ -657,6 +686,7 @@ export class Resolver extends EventEmitter {
       signal.removeEventListener('abort', onAbort)
       page.off('popup', onPopup)
       page.off('download', onDownload)
+      page.off('response', onResponse)
       for (const popup of popups) {
         if (popup.isClosed()) continue
         log.info(`[resolver] link ${link.id}: closing leftover popup ${hostOf(popup.url()) || popup.url()}`)

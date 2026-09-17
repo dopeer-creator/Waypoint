@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { WaypointApi } from '@shared/api'
-import type { AppSnapshot, LinkItem, ResolveMode, Settings, Toast } from '@shared/types'
+import type { AddLinksResult, AppSnapshot, LinkItem, ResolveMode, Settings, Toast } from '@shared/types'
 import { Icon } from '../components/Icons'
 import { Button, Chip, IconButton, Progress } from '../components/ui'
 import { hrefsFromHtml } from '@shared/links'
@@ -74,6 +74,14 @@ export function LinkGrabber({ snapshot, api, run, pushToast, onStartDownloads, s
   }
 
   const onDrop = (e: React.DragEvent<HTMLTextAreaElement>) => {
+    // A dropped file — a .txt list, a saved page — reads through the same import as the button.
+    const files = [...e.dataTransfer.files]
+    if (files.length) {
+      e.preventDefault()
+      void importPaths(files.map((file) => api.pathForFile(file)))
+      return
+    }
+
     const uriList = e.dataTransfer
       .getData('text/uri-list')
       .split(/\r?\n/)
@@ -97,13 +105,15 @@ export function LinkGrabber({ snapshot, api, run, pushToast, onStartDownloads, s
     setSelected(new Set())
   }
 
-  const importFile = async () => {
-    const result = await run(api.importLinks())
+  const reportImport = (result: AddLinksResult | null | undefined) => {
     if (result === undefined || result === null) return
-    const parts = [result.added ? `Added ${plural(result.added, 'link')}` : 'No new links']
+    const parts = [result.added ? `Added ${plural(result.added, 'link')}` : 'No new links found in that file']
     if (result.duplicates) parts.push(`${result.duplicates} already listed`)
     pushToast({ kind: result.added ? 'success' : 'info', text: parts.join(' · ') })
   }
+
+  const importFile = async () => reportImport(await run(api.importLinks()))
+  const importPaths = async (paths: string[]) => reportImport(await run(api.importLinksFrom(paths)))
 
   return (
     <div className="page">
@@ -115,6 +125,7 @@ export function LinkGrabber({ snapshot, api, run, pushToast, onStartDownloads, s
           value={text}
           onChange={(e) => setText(e.target.value)}
           onPaste={onPaste}
+          onDragOver={(e) => e.preventDefault()}
           onDrop={onDrop}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && e.ctrlKey) void addLinks()
@@ -122,7 +133,7 @@ export function LinkGrabber({ snapshot, api, run, pushToast, onStartDownloads, s
         />
         <div className="paste-side">
           <p className="hint">
-            Paste URLs, or copy links straight off a page — Waypoint reads the URLs behind the link text. <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to add.
+            Paste URLs, copy links straight off a page, or drop a .txt file of links here. <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to add.
           </p>
           <Button variant="primary" icon="plus" onClick={addLinks} disabled={!text.trim()}>
             Add links

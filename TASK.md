@@ -81,6 +81,56 @@ the edge of the pane at some widths. Check the row's grid/min-widths and the scr
 Keep building out the destination themes: more scenes, better motion, and per-theme polish on the tables and
 toolbars rather than only the background. Worth a pass over how a user's own wallpaper interacts with each scene.
 
+## 8. Speed graph panel on the Downloads page
+
+A proper speed chart in a panel below the download list, the way desktop torrent clients do it — not the small
+sparkline that already sits in the toolbar.
+
+- Time on the x-axis with a **resolution** selector (e.g. 5s / 30s / 1m per step) and gridlines, so the window
+  covers minutes or hours rather than the last N samples.
+- Y-axis labelled in real units (MB/s), scaled to the peak in view.
+- Plot aggregate download rate; consider a second line per active file, or payload vs total, once the aggregate
+  reads well. Keep the line count low enough to stay legible.
+- Needs a rolling history in the main process — the toolbar sparkline keeps its samples in React state, so it
+  resets whenever the view unmounts and can't cover a long window. Store samples where the speed is already
+  measured and send them with the snapshot.
+- Collapsible, and cheap to render: it will be on screen for hours during a large batch.
+
+## 9. Reset settings to defaults
+
+Defaults already exist and are applied on a fresh install — `defaultSettings()` in `src/main/settings.ts`, merged
+under whatever is stored, so a new machine starts on automatic resolve mode, extract on, 4 concurrent, 8
+connections per file, and so on. The missing half is a way *back* when settings have been fiddled into a state
+that no longer works.
+
+- A **Reset to defaults** button in Settings that writes `defaultSettings()` over the stored values.
+- Confirm before it runs, and say plainly what it will change — it throws away every preference, including the
+  download folder and the WinRAR path, which is not obvious from the button alone.
+- Don't reset while a run is in progress (resolve mode and concurrency change under the resolver's feet); either
+  disable it or stop the run first.
+- Worth a pass over the default values themselves at the same time, checking each is genuinely the "works out of
+  the box" choice rather than whatever happened to be convenient while building.
+- Consider a smaller per-section reset later if one big button proves too blunt.
+
+## 10. Removing a download should offer to delete the file too
+
+Removing a batch or a file from the Downloads list only forgets it — the bytes stay on disk, so clearing the list
+after a few big batches quietly leaves tens of gigabytes behind with no sign of it in the app.
+
+- Ask on remove whether to delete the downloaded files as well, with **yes** as the default.
+- Send files to the **Recycle Bin**, not a permanent unlink: Electron's `shell.trashItem()` does this, costs
+  nothing, and means a wrong answer is recoverable. This matters precisely *because* the default is yes — one
+  reflexive confirm on a finished 40GB batch is otherwise unrecoverable.
+- Say what will go: how many files and how much data, and the folder. "Delete 19 files (38.2 GB)" is a decision;
+  "Also delete files?" is a guess.
+- Decide what a removal covers when a batch was extracted — the archives, the extracted output, or both. The
+  archives are reproducible by downloading again; the extracted folder may be what the user actually wants to
+  keep, and may contain files Waypoint never downloaded.
+- Partly-downloaded files and their `.aria2` control files should go without ceremony; those are worthless alone.
+- Remember the answer as a setting (default yes) so it stops asking, with the choice still available per removal.
+- Never delete anything outside the batch's own folder, and never the folder itself if it holds anything Waypoint
+  didn't put there.
+
 ## 7. Logins — decide the shape before building
 
 Open question, not a decision yet. If Waypoint is to hold host accounts (premium or otherwise), the storage model

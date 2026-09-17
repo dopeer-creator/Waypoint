@@ -2,6 +2,14 @@
 
 All notable changes to Waypoint. Newest first.
 
+## v0.6.3
+Accurate batch sizes, a fix for cut-off rows, and drag-and-drop for link lists.
+
+- **The batch size is right from the start.** A batch used to show something like `57.5 MB / 7.8 GB+`, because only the handful of files already downloading knew how big they were. Waypoint now reads each file's exact size as it resolves the link, so the total is the real figure straight away — and the disk-space check, which was comparing your free space against a fraction of the real size, is honest too.
+- **Nothing is cut off on the Downloads page.** The columns added up to slightly more than the card on a 1320px-wide window, so the right-hand end of every row — including the remove button — was clipped. The columns now fit, with room to spare.
+- **Drop a file of links onto the paste box.** A `.txt`, `.csv` or saved page can be dropped straight in, the same as using Import from file, which now also takes several files at once.
+- A row with an unrecognised status no longer takes the whole window blank with it.
+
 ## v0.6.0
 Hosts that make you click through several steps now resolve on their own.
 

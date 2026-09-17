@@ -1,5 +1,5 @@
-import { cp, readFile, statfs } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { cp, readFile, stat, statfs } from 'node:fs/promises'
+import { basename, dirname, join } from 'node:path'
 import {
   app,
   BrowserWindow,
@@ -16,7 +16,7 @@ import log from 'electron-log/main'
 import { invokeMethods, type InvokeApi } from '../shared/api'
 import { CAPTURE_PORTS } from '../shared/extension'
 import { hrefsFromHtml } from '../shared/links'
-import type { AppSnapshot, ClipboardOffer, Toast } from '../shared/types'
+import type { AddLinksResult, AppSnapshot, ClipboardOffer, Toast } from '../shared/types'
 import { Aria2 } from './aria2'
 import { installedHandoffBrowsers } from './browsers'
 import { CaptureServer } from './capture'
@@ -251,6 +251,33 @@ async function watchClipboard(): Promise<void> {
   }, 1000)
 }
 
+/** Bytes. A link list is text; anything much larger was dropped by mistake and isn't worth reading into memory. */
+const MAX_IMPORT_BYTES = 8 * 1024 * 1024
+
+/** Reads link lists off disk, for both the Import button and files dropped on the window. */
+async function importFromPaths(paths: string[]): Promise<AddLinksResult | null> {
+  if (!paths.length) return null
+
+  const texts: string[] = []
+  for (const path of paths) {
+    const info = await stat(path).catch(() => null)
+    if (!info?.isFile()) continue // a dropped folder, or something that vanished
+    if (info.size > MAX_IMPORT_BYTES) {
+      log.info(`[import] skipped ${basename(path)}: ${info.size} bytes is too large for a link list`)
+      continue
+    }
+    texts.push(await readFile(path, 'utf8').catch(() => ''))
+  }
+  if (!texts.length) return { added: 0, duplicates: 0, invalid: 0 }
+
+  const raw = texts.join('\n')
+  // Same two passes as a paste: plain URLs in the text, plus the hrefs behind link text in saved HTML.
+  const { urls, invalid } = extractUrls([raw, ...hrefsFromHtml(raw)].join('\n'))
+  const { added, duplicates } = store.insertLinks(urls)
+  pushSnapshot()
+  return { added, duplicates, invalid }
+}
+
 function registerIpc(): void {
   const handlers: InvokeApi = {
     getSnapshot: async () => snapshot(),
@@ -281,19 +308,16 @@ function registerIpc(): void {
     importLinks: async () => {
       const result = await dialog.showOpenDialog(win!, {
         title: 'Import links from a file',
-        properties: ['openFile'],
+        properties: ['openFile', 'multiSelections'],
         filters: [
           { name: 'Link lists', extensions: ['txt', 'text', 'csv', 'md', 'html', 'htm'] },
           { name: 'All files', extensions: ['*'] }
         ]
       })
-      if (result.canceled || !result.filePaths[0]) return null
-      const raw = await readFile(result.filePaths[0], 'utf8').catch(() => '')
-      const { urls, invalid } = extractUrls([raw, ...hrefsFromHtml(raw)].join('\n'))
-      const { added, duplicates } = store.insertLinks(urls)
-      pushSnapshot()
-      return { added, duplicates, invalid }
+      if (result.canceled || !result.filePaths.length) return null
+      return importFromPaths(result.filePaths)
     },
+    importLinksFrom: async (paths: string[]) => importFromPaths(paths),
     removeLinks: async (ids) => {
       const removable = ids.filter((id) => id !== resolver.state.currentLinkId)
       const batchIds = new Set(removable.map((id) => store.getLink(id)?.batchId).filter((b): b is number => b != null))

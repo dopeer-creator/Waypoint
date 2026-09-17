@@ -218,7 +218,9 @@ function BatchCard({ batch, links, filter, open, onToggle, api, run }: BatchCard
 }
 
 function FileRow({ link, api, run }: { link: LinkItem; api: WaypointApi; run: <T>(work: Promise<T>) => Promise<T | undefined> }) {
-  const [label, tone] = downloadStatus[link.dlStatus]
+  // Fall back rather than destructure undefined: an unrecognised status would otherwise throw during render and
+  // take the whole app down to a blank window, which is a wildly disproportionate result for one odd row.
+  const [label, tone] = downloadStatus[link.dlStatus] ?? downloadStatus.none
   const complete = link.dlStatus === 'complete'
   const active = link.dlStatus === 'active'
   const done = complete ? link.totalBytes : link.doneBytes

@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 import { eventChannels, invokeMethods, type WaypointApi } from '../shared/api'
 
 const api: Record<string, unknown> = {}
@@ -14,5 +14,8 @@ for (const [name, channel] of Object.entries(eventChannels)) {
     return () => ipcRenderer.removeListener(channel, listener)
   }
 }
+
+// Not IPC: only the preload can turn a dropped File into a path, since Electron removed File.path.
+api.pathForFile = (file: File) => webUtils.getPathForFile(file)
 
 contextBridge.exposeInMainWorld('waypoint', api as unknown as WaypointApi)

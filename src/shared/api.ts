@@ -20,6 +20,8 @@ export interface InvokeApi {
 
   addLinks(text: string): Promise<AddLinksResult>
   importLinks(): Promise<AddLinksResult | null>
+  /** Import links from files the user dropped on the window; paths come from the preload's pathForFile. */
+  importLinksFrom(paths: string[]): Promise<AddLinksResult | null>
   removeLinks(ids: number[]): Promise<void>
   retryLinks(ids: number[]): Promise<void>
 
@@ -64,6 +66,7 @@ export const invokeMethods = [
   'getEnvironment',
   'addLinks',
   'importLinks',
+  'importLinksFrom',
   'removeLinks',
   'retryLinks',
   'resolverStart',
@@ -112,4 +115,10 @@ export const eventChannels = {
   onClipboardOffer: 'wp:clipboard-offer'
 } as const satisfies Record<keyof EventApi, string>
 
-export type WaypointApi = InvokeApi & EventApi
+/** Implemented directly in the preload, not over IPC. */
+export interface BridgeApi {
+  /** Absolute path of a file the user dropped. Electron removed File.path, so only the preload can resolve it. */
+  pathForFile(file: File): string
+}
+
+export type WaypointApi = InvokeApi & EventApi & BridgeApi
