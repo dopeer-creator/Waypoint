@@ -214,6 +214,7 @@ export default function App() {
               api={api}
               run={run}
               extensionConnected={snapshot.extensionConnected}
+              resolving={snapshot.resolver.running}
               onToast={(text) => pushToast({ kind: 'success', text })}
             />
           )}

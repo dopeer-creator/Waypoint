@@ -1,7 +1,7 @@
 {
   "name": "waypoint",
   "productName": "Waypoint",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "description": "Waypoint — Open Source Downloader",
   "main": "out/main/index.js",
   "author": "dopeer-creator",
@@ -19,7 +19,8 @@
     "icons": "node scripts/build-icons.mjs",
     "dist": "npm run build && electron-builder --win",
     "release": "npm run build && electron-builder --win --publish always",
-    "test:picker": "node tests/picker-test.mjs"
+    "test:picker": "node tests/picker-test.mjs",
+    "test:clipboard": "node tests/clipboard-test.mjs"
   },
   "dependencies": {
     "@fontsource/cinzel": "^5.3.0",

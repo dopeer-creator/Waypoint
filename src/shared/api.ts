@@ -2,6 +2,7 @@ import type {
   AddLinksResult,
   AppSnapshot,
   Batch,
+  ClipboardAnswer,
   ClipboardOffer,
   CreateBatchInput,
   DiskSpace,
@@ -16,6 +17,8 @@ export interface InvokeApi {
   getSnapshot(): Promise<AppSnapshot>
   getSettings(): Promise<Settings>
   setSettings(patch: Partial<Settings>): Promise<Settings>
+  /** Throws away every preference and goes back to the out-of-the-box defaults. */
+  resetSettings(): Promise<Settings>
   getEnvironment(): Promise<EnvInfo>
 
   addLinks(text: string): Promise<AddLinksResult>
@@ -28,6 +31,9 @@ export interface InvokeApi {
   resolverStart(): Promise<void>
   resolverStop(): Promise<void>
   resolverSkip(): Promise<void>
+
+  /** Closes a clipboard offer and remembers what not to offer again. */
+  clipboardAnswer(answer: ClipboardAnswer): Promise<void>
 
   pickFolder(defaultPath?: string): Promise<string | null>
   diskSpace(path: string): Promise<DiskSpace | null>
@@ -63,6 +69,7 @@ export const invokeMethods = [
   'getSnapshot',
   'getSettings',
   'setSettings',
+  'resetSettings',
   'getEnvironment',
   'addLinks',
   'importLinks',
@@ -72,6 +79,7 @@ export const invokeMethods = [
   'resolverStart',
   'resolverStop',
   'resolverSkip',
+  'clipboardAnswer',
   'pickFolder',
   'diskSpace',
   'createBatch',

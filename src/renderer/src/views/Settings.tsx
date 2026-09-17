@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import type { WaypointApi } from '@shared/api'
 import type { EnvInfo, HandoffBrowser, Settings, UpdateState } from '@shared/types'
 import { Icon } from '../components/Icons'
-import { Button, NumberInput, Toggle } from '../components/ui'
+import { Button, Modal, NumberInput, Toggle } from '../components/ui'
 
 interface Props {
   settings: Settings
@@ -11,6 +11,8 @@ interface Props {
   api: WaypointApi
   run: <T>(work: Promise<T>) => Promise<T | undefined>
   extensionConnected: boolean
+  /** A resolve run is in progress — resetting would change its settings underneath it. */
+  resolving: boolean
   onToast: (text: string) => void
 }
 
@@ -53,8 +55,9 @@ function updateText(update: UpdateState, version: string): string {
   }
 }
 
-export function SettingsView({ settings, save, update, api, run, extensionConnected, onToast }: Props) {
+export function SettingsView({ settings, save, update, api, run, extensionConnected, resolving, onToast }: Props) {
   const [env, setEnv] = useState<EnvInfo | null>(null)
+  const [confirmReset, setConfirmReset] = useState(false)
   const [winrarDraft, setWinrarDraft] = useState(settings.winrarPath)
   const handoff = settings.resolveMode === 'handoff'
   const browserName = settings.handoffBrowser === 'default' ? 'your browser' : HANDOFF_LABEL[settings.handoffBrowser]
@@ -259,8 +262,26 @@ export function SettingsView({ settings, save, update, api, run, extensionConnec
         <Row label="Watch clipboard" desc="When you copy links anywhere, Waypoint asks whether to add them.">
           <Toggle label="Watch clipboard" checked={settings.clipboardWatch} onChange={(v) => save({ clipboardWatch: v })} />
         </Row>
+        {settings.clipboardIgnoreHosts.length > 0 && (
+          <Row
+            label="Muted hosts"
+            desc={`Never offered from ${settings.clipboardIgnoreHosts.slice(0, 3).join(', ')}${settings.clipboardIgnoreHosts.length > 3 ? ` and ${settings.clipboardIgnoreHosts.length - 3} more` : ''}.`}
+          >
+            <Button icon="x" onClick={() => void save({ clipboardIgnoreHosts: [] })}>
+              Unmute all
+            </Button>
+          </Row>
+        )}
         <Row label="Close to tray" desc="Closing the window keeps Waypoint running in the system tray.">
           <Toggle label="Close to tray" checked={settings.closeToTray} onChange={(v) => save({ closeToTray: v })} />
+        </Row>
+        <Row
+          label="Reset to defaults"
+          desc={resolving ? 'Stop resolving first — a reset would change the run’s settings underneath it.' : 'Puts every setting on this page back to how Waypoint ships.'}
+        >
+          <Button variant="danger" icon="retry" disabled={resolving} onClick={() => setConfirmReset(true)}>
+            Reset all
+          </Button>
         </Row>
       </div>
 
@@ -288,6 +309,46 @@ export function SettingsView({ settings, save, update, api, run, extensionConnec
           </Button>
         </Row>
       </div>
+
+      {confirmReset && (
+        <Modal
+          title="Reset every setting?"
+          onClose={() => setConfirmReset(false)}
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setConfirmReset(false)}>
+                Cancel
+              </Button>
+              <span className="spacer" />
+              <Button
+                variant="danger"
+                icon="retry"
+                onClick={async () => {
+                  const next = await run(api.resetSettings())
+                  setConfirmReset(false)
+                  if (next) {
+                    setWinrarDraft(next.winrarPath)
+                    onToast('Settings reset to defaults')
+                  }
+                }}
+              >
+                Reset everything
+              </Button>
+            </>
+          }
+        >
+          <p className="muted">Every preference goes back to how Waypoint ships. That includes ones you may have set deliberately:</p>
+          <ul className="muted">
+            <li>
+              Download folder — <code>{settings.baseFolder}</code> goes back to your Windows Downloads folder
+            </li>
+            <li>WinRAR path, browser choice, and resolve mode</li>
+            <li>Speed limit, concurrency, and connections per file</li>
+            <li>Theme, and the hosts you muted on the clipboard</li>
+          </ul>
+          <p className="muted">Your links, batches, and downloaded files are not touched.</p>
+        </Modal>
+      )}
     </div>
   )
 }

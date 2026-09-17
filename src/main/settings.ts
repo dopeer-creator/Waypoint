@@ -18,6 +18,7 @@ export function defaultSettings(): Settings {
     autoClickDownload: true,
     winrarPath: '',
     clipboardWatch: false,
+    clipboardIgnoreHosts: [],
     deleteArchivesAfterExtract: false,
     closeToTray: false,
     maxResolveAttempts: 3,
@@ -48,6 +49,11 @@ export class SettingsService {
     return this.current
   }
 
+  /** Throws away every stored preference. The way back when settings have been fiddled into a broken state. */
+  reset(): Settings {
+    return this.update(defaultSettings())
+  }
+
   onChange(listener: (next: Settings, prev: Settings) => void): void {
     this.listeners.push(listener)
   }
@@ -65,7 +71,9 @@ export class SettingsService {
       theme: THEME_IDS.includes(s.theme) ? s.theme : d.theme,
       browserChannel: s.browserChannel === 'msedge' ? 'msedge' : 'chrome',
       resolveMode: s.resolveMode === 'automated' ? 'automated' : 'handoff',
-      handoffBrowser: ['brave', 'chrome', 'edge', 'default'].includes(s.handoffBrowser) ? s.handoffBrowser : d.handoffBrowser
+      handoffBrowser: ['brave', 'chrome', 'edge', 'default'].includes(s.handoffBrowser) ? s.handoffBrowser : d.handoffBrowser,
+      // Capped: this list only grows, and an unbounded one would be a slow leak into every settings write.
+      clipboardIgnoreHosts: [...new Set((Array.isArray(s.clipboardIgnoreHosts) ? s.clipboardIgnoreHosts : []).filter((h) => typeof h === 'string' && h))].slice(-100)
     }
   }
 }

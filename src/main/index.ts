@@ -23,7 +23,7 @@ import { CaptureServer } from './capture'
 import { Store } from './db'
 import { DownloadManager } from './downloads'
 import { findWinRAR } from './extract'
-import { extractUrls, hostOf } from './links'
+import { extractUrls, hostOf, looksLikeDownload } from './links'
 import { aria2Path, dbPath, extensionInstallDir, extensionSourceDir, iconPath, themesDir } from './paths'
 import { installedBrowsers, Resolver } from './resolver/resolver'
 import { SettingsService } from './settings'
@@ -226,29 +226,69 @@ async function readClipboardLinks(): Promise<string> {
   return [text, ...hrefsFromHtml(html)].join('\n')
 }
 
+/** How often the clipboard is read. */
+const CLIPBOARD_POLL_MS = 700
+/** How long the clipboard has to sit still before we offer, so a burst of copies becomes one prompt. */
+const CLIPBOARD_SETTLE_MS = 1500
+/** A prompt nobody ever answered (a reloaded window, say) stops blocking new offers after this. */
+const CLIPBOARD_PROMPT_STALE_MS = 10 * 60_000
+
+/** Links offered but turned down this session, so the same copy doesn't get asked about twice. */
+const dismissedLinks = new Set<string>()
+/** When the open offer was sent, or 0 when no prompt is on screen. */
+let clipboardPromptAt = 0
+
 /**
  * JDownloader-style clipboard capture: when new links are copied, ask the user before adding them rather than
- * grabbing silently. The renderer shows the prompt and calls addLinks on a yes.
+ * grabbing silently. The renderer shows the prompt and calls addLinks on a yes, then answers with
+ * clipboardAnswer either way.
+ *
+ * The clipboard sees everything the user copies all day, so an offer needs a positive reason: the link has to
+ * look like a file (see looksLikeDownload), be new, not have been turned down already, and not belong to a host
+ * they have muted. Copies are then pooled until the copying stops, so grabbing five links one after another
+ * asks once.
  */
 async function watchClipboard(): Promise<void> {
   // Ignore whatever is already on the clipboard when watching starts.
   let last = await readClipboardLinks()
+  let pending: string[] = []
+  let pendingAt = 0
+
   settings.onChange((next, prev) => {
     if (next.clipboardWatch && !prev.clipboardWatch) void readClipboardLinks().then((text) => (last = text))
   })
+
   setInterval(async () => {
-    if (!settings.get().clipboardWatch) return
+    if (!settings.get().clipboardWatch) {
+      pending = []
+      return
+    }
+
     const text = await readClipboardLinks()
-    if (text === last) return
-    last = text
-    const { urls } = extractUrls(text)
-    // Only offer links that aren't already listed, so re-copying the same page doesn't nag.
-    const existing = new Set(store.listLinks().map((l) => l.url))
-    const fresh = urls.filter((u) => !existing.has(u))
-    if (!fresh.length) return
+    if (text !== last) {
+      last = text
+      const listed = store.listLinks()
+      const existing = new Set(listed.map((l) => l.url))
+      // A host the user has added links from before is one they download from, whether or not we ship its name.
+      const familiar = new Set(listed.map((l) => hostOf(l.url)).filter(Boolean))
+      const muted = new Set(settings.get().clipboardIgnoreHosts)
+      for (const url of extractUrls(text).urls) {
+        if (existing.has(url) || dismissedLinks.has(url) || pending.includes(url)) continue
+        if (muted.has(hostOf(url)) || !looksLikeDownload(url, familiar)) continue
+        pending.push(url)
+      }
+      if (pending.length) pendingAt = Date.now()
+    }
+
+    if (!pending.length || Date.now() - pendingAt < CLIPBOARD_SETTLE_MS) return
+    if (clipboardPromptAt && Date.now() - clipboardPromptAt < CLIPBOARD_PROMPT_STALE_MS) return // already asking
+
+    const fresh = pending
+    pending = []
+    clipboardPromptAt = Date.now()
     const hosts = [...new Set(fresh.map(hostOf))].filter(Boolean)
     send('wp:clipboard-offer', { text: fresh.join('\n'), count: fresh.length, hosts } satisfies ClipboardOffer)
-  }, 1000)
+  }, CLIPBOARD_POLL_MS)
 }
 
 /** Bytes. A link list is text; anything much larger was dropped by mistake and isn't worth reading into memory. */
@@ -284,6 +324,14 @@ function registerIpc(): void {
     getSettings: async () => settings.get(),
     setSettings: async (patch) => {
       const next = settings.update(patch)
+      pushSnapshot()
+      return next
+    },
+    resetSettings: async () => {
+      // Resolve mode, browser and concurrency all change under a run's feet; make the user stop it first.
+      if (resolver.state.running) throw new Error('Stop resolving before resetting settings')
+      const next = settings.reset()
+      log.info('[settings] reset to defaults')
       pushSnapshot()
       return next
     },
@@ -339,6 +387,17 @@ function registerIpc(): void {
     },
     resolverStop: async () => resolver.stop(),
     resolverSkip: async () => resolver.skip(),
+
+    clipboardAnswer: async ({ text, added, ignoreHosts }) => {
+      clipboardPromptAt = 0
+      const urls = extractUrls(text).urls
+      // Added links are in the list now, which is what stops them being offered again.
+      if (!added) for (const url of urls) dismissedLinks.add(url)
+      if (!ignoreHosts) return
+      const hosts = urls.map(hostOf).filter(Boolean)
+      settings.update({ clipboardIgnoreHosts: [...settings.get().clipboardIgnoreHosts, ...hosts] })
+      pushSnapshot()
+    },
 
     pickFolder: async (defaultPath) => {
       const result = await dialog.showOpenDialog(win!, {

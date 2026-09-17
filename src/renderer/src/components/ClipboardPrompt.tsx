@@ -14,20 +14,38 @@ interface Props {
 
 /** Asks before adding links spotted on the clipboard (JDownloader-style, but with consent). */
 export function ClipboardPrompt({ offer, api, run, onToast, onClose }: Props) {
+  const hostList = offer.hosts.slice(0, 4).join(', ') + (offer.hosts.length > 4 ? '…' : '')
+
+  // Every way out answers, so the watcher knows the prompt is gone and what not to offer again.
+  const close = (added: boolean, ignoreHosts = false) => {
+    void api.clipboardAnswer({ text: offer.text, added, ignoreHosts })
+    onClose()
+  }
+
   const add = async (resolve: boolean) => {
     const result = await run(api.addLinks(offer.text))
     if (result?.added && resolve) void run(api.resolverStart())
     if (result) onToast(result.added ? `Added ${plural(result.added, 'link')}` : 'No new links')
-    onClose()
+    close(Boolean(result?.added))
+  }
+
+  const mute = () => {
+    close(false, true)
+    onToast(offer.hosts.length === 1 ? `Won't ask about ${offer.hosts[0]} again` : "Won't ask about those hosts again")
   }
 
   return (
     <Modal
       title="Links copied"
-      onClose={onClose}
+      onClose={() => close(false)}
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          {offer.hosts.length > 0 && (
+            <Button variant="ghost" onClick={mute}>
+              Never {offer.hosts.length === 1 ? `for ${offer.hosts[0]}` : 'for these hosts'}
+            </Button>
+          )}
+          <Button variant="ghost" onClick={() => close(false)}>
             Not now
           </Button>
           <span className="spacer" />
@@ -44,7 +62,7 @@ export function ClipboardPrompt({ offer, api, run, onToast, onClose }: Props) {
         <Icon name="link" size={20} />
         <div className="setting-text">
           <div className="setting-label">Add {plural(offer.count, 'link')} from the clipboard?</div>
-          <div className="setting-desc">{offer.hosts.length ? `From ${offer.hosts.slice(0, 4).join(', ')}${offer.hosts.length > 4 ? '…' : ''}` : 'Copied links detected.'}</div>
+          <div className="setting-desc">{hostList ? `From ${hostList}` : 'Copied links detected.'}</div>
         </div>
       </div>
     </Modal>

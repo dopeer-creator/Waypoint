@@ -2,6 +2,24 @@
 
 All notable changes to Waypoint. Newest first.
 
+## v0.6.4
+A clipboard prompt that only speaks when it's useful, and a way back from broken settings.
+
+- **The clipboard prompt stops nagging.** It used to offer every URL that touched the clipboard, so copying a
+  link on GitHub or a search result would pop the dialog. A copy now has to look like a file to be offered: an
+  archive or media name in the URL, a file host Waypoint knows, or a host you have already added links from by
+  hand. Ordinary browsing is silent.
+- **One prompt per burst.** Copying five links one after another waits for the copying to stop and asks once,
+  instead of interrupting after each one.
+- **It remembers "no".** Turning a prompt down means those links aren't offered again, so re-copying the same
+  page doesn't ask twice. There's also **Never for <host>** on the prompt itself, and the muted hosts are listed
+  in Settings with an Unmute all next to them.
+- **Reset to defaults.** Settings has a **Reset all** button that puts every preference back to how Waypoint
+  ships — useful when settings have been fiddled into a state that no longer downloads. It confirms first and
+  says exactly what it throws away, including the download folder and the WinRAR path. It's unavailable while a
+  resolve run is going, since it would change the run's settings underneath it. Your links, batches and
+  downloaded files are never touched.
+
 ## v0.6.3
 Accurate batch sizes, a fix for cut-off rows, and drag-and-drop for link lists.
 

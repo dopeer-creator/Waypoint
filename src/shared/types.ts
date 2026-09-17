@@ -107,6 +107,8 @@ export interface Settings {
   autoClickDownload: boolean
   winrarPath: string
   clipboardWatch: boolean
+  /** Hosts the user said "never ask again" to when the clipboard offered their links. */
+  clipboardIgnoreHosts: string[]
   /** Delete original archives after a successful extraction (default off). */
   deleteArchivesAfterExtract: boolean
   closeToTray: boolean
@@ -139,6 +141,16 @@ export interface ClipboardOffer {
   text: string
   count: number
   hosts: string[]
+}
+
+/** What the user did with a clipboard offer. Sent back so the watcher knows the prompt is closed. */
+export interface ClipboardAnswer {
+  /** The offer's links, exactly as they were offered. */
+  text: string
+  /** True when the links were added — nothing to remember, they're in the list now. */
+  added: boolean
+  /** Stop offering anything from these links' hosts. */
+  ignoreHosts: boolean
 }
 
 export interface EnvInfo {
