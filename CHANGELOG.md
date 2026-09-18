@@ -2,6 +2,19 @@
 
 All notable changes to Waypoint. Newest first.
 
+## v0.7.2
+The speed graph reaches back a whole day, and can keep a record if you want one.
+
+- **Ranges you can read.** The graph's buttons now say how far back it goes — **5m · 30m · 1h · 6h · 24h** —
+  instead of the old 1s / 5s / 30s / 1m, which described the size of each point and topped out at 2 hours.
+- **A full day in memory.** The 6h and 24h views work from per-minute averages, so a batch left running all
+  evening can be looked back on without Waypoint holding a day of second-by-second samples.
+- **Optional saved history.** A new **Save speed history** setting (off by default) keeps a per-minute record
+  in a folder on your PC. With it on, the graph gets a picker for past days, drawn 00:00–24:00, with gaps
+  where Waypoint wasn't running. Nothing leaves your computer, and only the last 30 days are kept.
+- **Cleaner chart.** The line no longer dips to zero at "now", the scale uses one unit throughout, and the
+  hover readout sits beside the line instead of covering it.
+
 ## v0.7.1
 A proper speed graph, docked at the bottom of the Downloads page.
 

@@ -28,9 +28,11 @@ interface Props {
   deleteFilesDefault: boolean
   onRememberDeleteFiles: (deleteFiles: boolean) => void
   onToast: (text: string) => void
+  /** Settings.saveSpeedHistory — lets the speed panel open saved days. */
+  savingHistory: boolean
 }
 
-export function Downloads({ snapshot, api, run, onGoToGrabber, deleteFilesDefault, onRememberDeleteFiles, onToast }: Props) {
+export function Downloads({ snapshot, api, run, onGoToGrabber, deleteFilesDefault, onRememberDeleteFiles, onToast, savingHistory }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
   const [removing, setRemoving] = useState<Batch | null>(null)
   // Batches start expanded while running and collapsed once done; clicking flips that default.
@@ -138,7 +140,7 @@ export function Downloads({ snapshot, api, run, onGoToGrabber, deleteFilesDefaul
         {visibleBatches.length === 0 && <div className="card empty">Nothing in this view.</div>}
       </div>
 
-      <SpeedPanel api={api} speedNow={snapshot.stats.speed} />
+      <SpeedPanel api={api} speedNow={snapshot.stats.speed} savingHistory={savingHistory} />
 
       {removing && (
         <RemoveBatchDialog

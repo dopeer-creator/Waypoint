@@ -21,6 +21,7 @@ export function defaultSettings(): Settings {
     clipboardIgnoreHosts: [],
     deleteArchivesAfterExtract: false,
     deleteFilesOnRemove: true,
+    saveSpeedHistory: false,
     closeToTray: false,
     maxResolveAttempts: 3,
     sceneDim: 55

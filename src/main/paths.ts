@@ -16,6 +16,8 @@ export const extensionInstallDir = (): string => join(app.getPath('userData'), '
 
 /** User-supplied wallpapers for the premium themes: <userData>/themes/<themeId>.<ext>. */
 export const themesDir = (): string => join(app.getPath('userData'), 'themes')
+/** Saved speed history, one CSV per day, only written when the user turns saving on. */
+export const speedHistoryDir = (): string => join(app.getPath('userData'), 'speed-history')
 
 export const dbPath =(): string => join(app.getPath('userData'), 'waypoint.db')
 export const browserProfileDir = (channel: string): string => join(app.getPath('userData'), 'browser-profile', channel)

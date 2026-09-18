@@ -50,6 +50,11 @@ export interface InvokeApi {
   resumeBatch(id: number): Promise<void>
   /** Total download speed history: `points` buckets of `step` seconds, ending now. */
   speedHistory(step: number, points: number): Promise<SpeedSeries>
+  /** Days with saved speed history, newest first (YYYY-MM-DD). Empty unless saving has been on. */
+  speedDays(): Promise<string[]>
+  /** One saved day: 1,440 one-minute points from local midnight. */
+  speedDay(date: string): Promise<SpeedSeries>
+  openSpeedHistoryFolder(): Promise<void>
   /** What removeBatch(id, true) would delete, so the confirm can name a size rather than guess. */
   removalPlan(id: number): Promise<RemovalPlan>
   removeBatch(id: number, deleteFiles: boolean): Promise<RemovalResult>
@@ -96,6 +101,9 @@ export const invokeMethods = [
   'pauseBatch',
   'resumeBatch',
   'speedHistory',
+  'speedDays',
+  'speedDay',
+  'openSpeedHistoryFolder',
   'removalPlan',
   'removeBatch',
   'extractBatch',

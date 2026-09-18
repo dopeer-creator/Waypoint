@@ -272,6 +272,17 @@ export function SettingsView({ settings, save, update, api, run, extensionConnec
             </Button>
           </Row>
         )}
+        <Row
+          label="Save speed history"
+          desc="Keeps a per-minute record of download speed in a folder on this PC, so past days can be opened from the speed graph. Nothing leaves your computer; the last 30 days are kept."
+        >
+          {settings.saveSpeedHistory && (
+            <Button icon="folder" onClick={() => run(api.openSpeedHistoryFolder())}>
+              Open folder
+            </Button>
+          )}
+          <Toggle label="Save speed history" checked={settings.saveSpeedHistory} onChange={(v) => save({ saveSpeedHistory: v })} />
+        </Row>
         <Row label="Close to tray" desc="Closing the window keeps Waypoint running in the system tray.">
           <Toggle label="Close to tray" checked={settings.closeToTray} onChange={(v) => save({ closeToTray: v })} />
         </Row>

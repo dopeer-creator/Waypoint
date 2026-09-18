@@ -203,6 +203,7 @@ export default function App() {
               onGoToGrabber={() => setView('grabber')}
               deleteFilesDefault={settings.deleteFilesOnRemove}
               onRememberDeleteFiles={(v) => void saveSettings({ deleteFilesOnRemove: v })}
+              savingHistory={settings.saveSpeedHistory}
               onToast={(text) => pushToast({ kind: 'success', text })}
             />
           )}

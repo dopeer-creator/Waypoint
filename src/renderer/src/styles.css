@@ -1362,6 +1362,13 @@ kbd {
   font-variant-numeric: tabular-nums;
 }
 
+.speed-day {
+  height: 30px;
+  width: auto;
+  padding: 0 8px;
+  font-size: 12.5px;
+}
+
 .segmented.small button {
   height: 24px;
   padding: 0 10px;
@@ -1401,7 +1408,7 @@ kbd {
 
 .speed-tip {
   position: absolute;
-  transform: translateX(-50%);
+  transform: translateX(12px);
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -1414,6 +1421,10 @@ kbd {
   line-height: 1.3;
   pointer-events: none;
   white-space: nowrap;
+}
+
+.speed-tip.left {
+  transform: translateX(calc(-100% - 12px));
 }
 
 .speed-tip strong {

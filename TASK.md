@@ -4,7 +4,7 @@ Working list. Newest thinking at the bottom of each item; tick things off as the
 
 Numbers stay put as things ship, so the gaps are expected. Done so far: **1** drag-and-drop link lists,
 **4** exact batch sizes and **5** the clipped Downloads rows (all v0.6.3); **3** the clipboard prompt and
-**9** reset to defaults (v0.6.4); **10** deleting files on removal (v0.7.0); **8** the speed graph panel (v0.7.1).
+**9** reset to defaults (v0.6.4); **10** deleting files on removal (v0.7.0); **8** the speed graph panel (v0.7.1); **11** longer ranges and saved history (v0.7.2).
 
 ---
 
@@ -69,3 +69,32 @@ means the *method* is public, which is fine, as long as no secret is.
 
 Worth deciding what the feature is actually for first (premium accounts? per-host sessions? syncing?), since the
 answer changes the storage question entirely.
+
+## 12. Make a downloading update visible, and make "Check for updates" a button
+
+When an update is found it downloads silently — the only sign is the small text in the sidebar corner, in the
+same muted color as everything else, so it's easy to never notice.
+
+- While an update is **downloading** (and when it's **ready**), show that line in an accent color so it reads as
+  news, not as a footnote. The existing "ready to install" card stays.
+- **Check for updates** becomes a real button — low-emphasis (ghost / low opacity), but with a button's shape and
+  hit area, not a text link.
+
+## 13. Explaining the resolve modes — first-use popup and mode-change notice
+
+In automatic mode Waypoint opens Chrome tabs and drives them itself. Someone who hasn't been told will start
+clicking in those tabs — and a click on the wrong control (or an ad) can derail the run.
+
+Decided shape:
+
+- **First time automatic mode is used**, a popup explains it in a few lines: Waypoint opens the links and clicks
+  through them itself; **don't click around in the opened tabs or close them**; only step in when a tab comes to
+  the front asking for a Cloudflare check. It also briefly mentions **manual mode** ("In your browser") and
+  offers a button to **switch to it**.
+- **If they switch** from that popup, the popup then describes manual mode instead (links open in your own
+  browser, you pass the check and click Download, the extension hands the file over, one-time extension setup).
+- A **"Don't show again"** checkbox, stored as a setting; Reset to defaults brings it back.
+- **Changing mode in Settings** shows a side notification (toast) saying what just changed and what that mode
+  does, with a link to the README on GitHub that explains each mode. It fades out on its own.
+- The README needs a short "Resolve modes" section for that link to land on.
+- Keep every piece to a glance, not a manual.

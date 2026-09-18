@@ -113,6 +113,8 @@ export interface Settings {
   deleteArchivesAfterExtract: boolean
   /** Removing a batch also deletes its downloaded files (default on; the dialog asks each time). */
   deleteFilesOnRemove: boolean
+  /** Save per-minute speed history to files on this PC, so past days can be viewed (default off). */
+  saveSpeedHistory: boolean
   closeToTray: boolean
   maxResolveAttempts: number
   /** How much to darken a premium theme's background image so text stays readable, 0-90 (%). */
@@ -157,6 +159,8 @@ export interface SpeedSeries {
   values: number[]
   /** The configured speed cap in bytes/s, 0 when unlimited. */
   limit: number
+  /** Saved days only: true where nothing was recorded (Waypoint wasn't running), drawn as a gap. */
+  gaps?: boolean[]
 }
 
 export interface DiskSpace {

@@ -1,4 +1,4 @@
-import { cp, readFile, stat, statfs } from 'node:fs/promises'
+import { cp, mkdir, readFile, stat, statfs } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import {
   app,
@@ -24,7 +24,7 @@ import { Store } from './db'
 import { DownloadManager } from './downloads'
 import { findWinRAR } from './extract'
 import { extractUrls, hostOf, looksLikeDownload } from './links'
-import { aria2Path, dbPath, extensionInstallDir, extensionSourceDir, iconPath, themesDir } from './paths'
+import { aria2Path, dbPath, extensionInstallDir, extensionSourceDir, iconPath, speedHistoryDir, themesDir } from './paths'
 import { installedBrowsers, Resolver } from './resolver/resolver'
 import { SettingsService } from './settings'
 import { SpeedHistory } from './speedhistory'
@@ -429,6 +429,13 @@ function registerIpc(): void {
     pauseBatch: async (id) => downloads.pauseBatch(id).then(pushSnapshot),
     resumeBatch: async (id) => downloads.resumeBatch(id).then(pushSnapshot),
     speedHistory: async (step, points) => speedHistory.series(step, points),
+    speedDays: async () => speedHistory.savedDays(),
+    speedDay: async (date) => speedHistory.day(date),
+    openSpeedHistoryFolder: async () => {
+      await mkdir(speedHistoryDir(), { recursive: true })
+      const error = await shell.openPath(speedHistoryDir())
+      if (error) toast('error', error)
+    },
     removalPlan: async (id) => downloads.removalPlan(id),
     removeBatch: async (id, deleteFiles) => {
       const result = await downloads.removeBatch(id, deleteFiles)
@@ -521,7 +528,10 @@ async function main(): Promise<void> {
   settings = new SettingsService(store)
   resolver = new Resolver(store, settings)
   downloads = new DownloadManager(store, settings, new Aria2(aria2Path()))
-  speedHistory = new SpeedHistory(() => ({ speed: downloads.totalSpeed(), limit: settings.get().speedLimitKib * 1024 }))
+  speedHistory = new SpeedHistory(
+    () => ({ speed: downloads.totalSpeed(), limit: settings.get().speedLimitKib * 1024, save: settings.get().saveSpeedHistory }),
+    speedHistoryDir()
+  )
   speedHistory.start()
   updater = new Updater((state) => send('wp:update', state))
 
