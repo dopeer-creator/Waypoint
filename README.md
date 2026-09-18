@@ -12,6 +12,32 @@ Waypoint is a Windows batch download manager in the spirit of JDownloader, built
 
 Downloads survive restarts: aria2 resumes from its `.aria2` control files the next time Waypoint opens.
 
+## Resolve modes
+
+Resolving turns a host's share link into the real file URL that aria2 downloads. Waypoint can do that two ways;
+switch between them in **Settings → Link resolving**.
+
+### Automatic (default)
+
+Waypoint opens each link in **its own Chrome (or Edge) window** — a separate profile, not your everyday browser —
+and clicks through the host's pages to the download by itself, several links at a time.
+
+- **Leave those tabs alone.** Don't click around in them and don't close them. A stray click can land on an ad
+  and throw a link off; the tabs close themselves when they're done.
+- **You're only needed for a Cloudflare check.** If a tab comes to the front asking for one, complete it, then
+  let Waypoint carry on.
+
+### In your browser
+
+Links open as **normal tabs in your own browser** (Brave, Chrome or Edge), with your usual logins and cookies.
+
+- In each tab, pass any check and **click Download** as you normally would.
+- The **Waypoint browser extension** catches the download and hands it to Waypoint, which fetches the file — your
+  browser doesn't keep a copy.
+- The extension is installed once, from **Settings → Link resolving**, which walks you through it.
+
+Use this mode when a host won't cooperate with the automatic window, or when you'd rather click yourself.
+
 ## Themes
 
 Settings → Appearance has four core themes (also cycled from the sidebar) and five animated **destination** themes — Ragnarök, Jackdaw, Night City, Tsushima, and Wasteland. Each has its own colours, fonts, chrome, and a code-drawn animated background (Matrix code rain, neon glow, ink that follows the cursor, and so on).

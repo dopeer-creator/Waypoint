@@ -14,6 +14,9 @@ interface Props {
   /** A resolve run is in progress — resetting would change its settings underneath it. */
   resolving: boolean
   onToast: (text: string) => void
+  /** The resolve mode was switched here — App explains what changed. */
+  onModeChanged: (mode: 'handoff' | 'automated') => void
+  onShowGuide: () => void
 }
 
 const HANDOFF_LABEL: Record<HandoffBrowser, string> = { brave: 'Brave', chrome: 'Chrome', edge: 'Edge', default: 'Default' }
@@ -55,7 +58,7 @@ function updateText(update: UpdateState, version: string): string {
   }
 }
 
-export function SettingsView({ settings, save, update, api, run, extensionConnected, resolving, onToast }: Props) {
+export function SettingsView({ settings, save, update, api, run, extensionConnected, resolving, onToast, onModeChanged, onShowGuide }: Props) {
   const [env, setEnv] = useState<EnvInfo | null>(null)
   const [confirmReset, setConfirmReset] = useState(false)
   const [winrarDraft, setWinrarDraft] = useState(settings.winrarPath)
@@ -122,13 +125,16 @@ export function SettingsView({ settings, save, update, api, run, extensionConnec
           }
         >
           <div className="segmented">
-            <button className={handoff ? 'active' : ''} onClick={() => save({ resolveMode: 'handoff' })}>
+            <button className={handoff ? 'active' : ''} onClick={() => !handoff && void save({ resolveMode: 'handoff' }).then(() => onModeChanged('handoff'))}>
               In your browser
             </button>
-            <button className={handoff ? '' : 'active'} onClick={() => save({ resolveMode: 'automated' })}>
+            <button className={handoff ? '' : 'active'} onClick={() => handoff && void save({ resolveMode: 'automated' }).then(() => onModeChanged('automated'))}>
               Automatic
             </button>
           </div>
+          <Button variant="ghost" size="sm" icon="info" onClick={onShowGuide}>
+            How it works
+          </Button>
         </Row>
 
         {handoff ? (

@@ -20,9 +20,11 @@ interface Props {
   onStartDownloads: (links: LinkItem[]) => void
   settings: Settings
   onOpenSettings: () => void
+  /** Starts resolving — through App, so the first automatic run can show the how-it-works guide first. */
+  onResolve: () => void
 }
 
-export function LinkGrabber({ snapshot, api, run, pushToast, onStartDownloads, settings, onOpenSettings }: Props) {
+export function LinkGrabber({ snapshot, api, run, pushToast, onStartDownloads, settings, onOpenSettings, onResolve }: Props) {
   const [text, setText] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [selected, setSelected] = useState<Set<number>>(new Set())
@@ -152,7 +154,7 @@ export function LinkGrabber({ snapshot, api, run, pushToast, onStartDownloads, s
         pendingCount={pending.length}
         resolvedCount={resolved.length}
         failedCount={failed.length}
-        onStart={() => run(api.resolverStart())}
+        onStart={onResolve}
         onStop={() => run(api.resolverStop())}
         onSkip={() => run(api.resolverSkip())}
         onDownload={() => onStartDownloads(resolved)}

@@ -14,7 +14,11 @@ const EMPTY: AppSnapshot = {
 
 export interface ToastItem extends Toast {
   id: number
+  /** Set just before removal so the toast can fade out rather than vanish. */
+  leaving?: boolean
 }
+
+const TOAST_FADE_MS = 300
 
 let toastId = 0
 
@@ -31,7 +35,9 @@ export function useWaypoint() {
     (toast: Toast) => {
       const id = ++toastId
       setToasts((list) => [...list.slice(-3), { ...toast, id }])
-      setTimeout(() => dismissToast(id), toast.kind === 'error' ? 8000 : 4500)
+      const duration = toast.duration ?? (toast.kind === 'error' ? 8000 : 4500)
+      setTimeout(() => setToasts((list) => list.map((t) => (t.id === id ? { ...t, leaving: true } : t))), duration - TOAST_FADE_MS)
+      setTimeout(() => dismissToast(id), duration)
     },
     [dismissToast]
   )

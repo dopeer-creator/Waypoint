@@ -22,6 +22,7 @@ export function defaultSettings(): Settings {
     deleteArchivesAfterExtract: false,
     deleteFilesOnRemove: true,
     saveSpeedHistory: false,
+    modeGuideHidden: false,
     closeToTray: false,
     maxResolveAttempts: 3,
     sceneDim: 55

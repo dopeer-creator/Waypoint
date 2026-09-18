@@ -115,6 +115,8 @@ export interface Settings {
   deleteFilesOnRemove: boolean
   /** Save per-minute speed history to files on this PC, so past days can be viewed (default off). */
   saveSpeedHistory: boolean
+  /** "Don't show again" on the how-the-resolve-modes-work popup (default off, so it shows). */
+  modeGuideHidden: boolean
   closeToTray: boolean
   maxResolveAttempts: number
   /** How much to darken a premium theme's background image so text stays readable, 0-90 (%). */
@@ -210,4 +212,8 @@ export type UpdateState =
 export interface Toast {
   kind: 'info' | 'success' | 'error'
   text: string
+  /** An optional link shown after the text, opened in the user's browser. */
+  link?: { label: string; url: string }
+  /** How long it stays, in ms. Defaults by kind. */
+  duration?: number
 }

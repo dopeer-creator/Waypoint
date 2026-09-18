@@ -10,10 +10,12 @@ interface Props {
   run: <T>(work: Promise<T>) => Promise<T | undefined>
   onToast: (text: string) => void
   onClose: () => void
+  /** Starts resolving — through App, so the first automatic run can show the how-it-works guide first. */
+  onResolve: () => void
 }
 
 /** Asks before adding links spotted on the clipboard (JDownloader-style, but with consent). */
-export function ClipboardPrompt({ offer, api, run, onToast, onClose }: Props) {
+export function ClipboardPrompt({ offer, api, run, onToast, onClose, onResolve }: Props) {
   const hostList = offer.hosts.slice(0, 4).join(', ') + (offer.hosts.length > 4 ? '…' : '')
 
   // Every way out answers, so the watcher knows the prompt is gone and what not to offer again.
@@ -24,7 +26,7 @@ export function ClipboardPrompt({ offer, api, run, onToast, onClose }: Props) {
 
   const add = async (resolve: boolean) => {
     const result = await run(api.addLinks(offer.text))
-    if (result?.added && resolve) void run(api.resolverStart())
+    if (result?.added && resolve) onResolve()
     if (result) onToast(result.added ? `Added ${plural(result.added, 'link')}` : 'No new links')
     close(Boolean(result?.added))
   }

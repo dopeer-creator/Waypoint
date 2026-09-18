@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { THEMES } from '@shared/themes'
-import type { LinkItem, ThemeId } from '@shared/types'
+import type { LinkItem, ResolveMode, ThemeId } from '@shared/types'
 import { BatchDialog } from './components/BatchDialog'
 import { Mark, Wordmark } from './components/Brand'
 import { ClipboardPrompt } from './components/ClipboardPrompt'
 import { Icon, type IconName } from './components/Icons'
 import { IntroSplash } from './components/IntroSplash'
+import { ModeGuide, MODES_README } from './components/ModeGuide'
 import { ThemeScene } from './components/ThemeScene'
 import { Toasts } from './components/Toasts'
 import { Button } from './components/ui'
@@ -48,6 +49,8 @@ export default function App() {
   const [view, setView] = useState<View>('grabber')
   const [intro, setIntro] = useState(true)
   const [batchLinks, setBatchLinks] = useState<LinkItem[] | null>(null)
+  /** The resolve-mode guide; `starting` when it's standing between the user and a resolve they just asked for. */
+  const [guide, setGuide] = useState<{ starting: boolean } | null>(null)
   const theme = useResolvedTheme(settings?.theme)
   const run = useMemo(() => guard(pushToast), [pushToast])
 
@@ -76,14 +79,29 @@ export default function App() {
     void saveSettings({ theme: next })
   }
 
+  // The first automatic run shows how it works before any Chrome tab opens, unless the user has said not to.
+  const startResolve = () => {
+    if (settings.resolveMode === 'automated' && !settings.modeGuideHidden) setGuide({ starting: true })
+    else void run(api.resolverStart())
+  }
+
+  const MODE_NOTE: Record<ResolveMode, string> = {
+    automated: 'Automatic mode: Waypoint opens each link in its own Chrome window and clicks through for you. Leave those tabs alone unless one asks for a check.',
+    handoff: 'In your browser: links open as tabs in your own browser. You click Download, and the Waypoint extension hands the file over.'
+  }
+  const announceMode = (mode: ResolveMode) =>
+    pushToast({ kind: 'info', text: MODE_NOTE[mode], link: { label: 'What each mode does', url: MODES_README }, duration: 9000 })
+
   const updateBusy = update.state === 'checking' || update.state === 'available' || update.state === 'downloading'
+  // A new version on its way or waiting is news: it gets the accent color instead of the corner's muted gray.
+  const updateNews = update.state === 'available' || update.state === 'downloading' || update.state === 'ready'
   const updateLabel = {
     idle: 'Check for updates',
     checking: 'Checking…',
     none: 'Up to date',
-    available: 'Downloading update…',
-    downloading: `Downloading ${update.state === 'downloading' ? update.percent : 0}%`,
-    ready: 'Update ready',
+    available: `Downloading v${update.state === 'available' ? update.version : ''}…`,
+    downloading: `Downloading v${update.state === 'downloading' ? `${update.version} · ${update.percent}` : ''}%`,
+    ready: `v${update.state === 'ready' ? update.version : ''} ready — restart`,
     error: 'Check failed — retry'
   }[update.state]
 
@@ -135,9 +153,23 @@ export default function App() {
           </button>
           <div className="version-row">
             <span className="version">Waypoint v{__APP_VERSION__}</span>
-            <button className="update-link" onClick={() => void run(api.checkForUpdates())} disabled={updateBusy} title="Check GitHub for a newer version">
-              <Icon name="retry" size={13} className={update.state === 'checking' ? 'spin' : undefined} />
+            <button
+              className={`update-btn ${updateNews ? 'news' : ''} ${update.state === 'error' ? 'failed' : ''}`}
+              onClick={update.state === 'ready' ? installUpdate : () => void run(api.checkForUpdates())}
+              disabled={updateBusy}
+              title={updateNews ? 'A new version of Waypoint is downloading in the background' : 'Check GitHub for a newer version'}
+            >
+              <Icon
+                name={updateNews ? 'download' : 'retry'}
+                size={13}
+                className={update.state === 'checking' ? 'spin' : update.state === 'downloading' || update.state === 'available' ? 'bob' : undefined}
+              />
               {updateLabel}
+              {update.state === 'downloading' && (
+                <span className="update-btn-bar" aria-hidden>
+                  <span style={{ width: `${update.percent}%` }} />
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -193,6 +225,7 @@ export default function App() {
               onStartDownloads={(links) => links.length && setBatchLinks(links)}
               settings={settings}
               onOpenSettings={() => setView('settings')}
+              onResolve={startResolve}
             />
           )}
           {view === 'downloads' && (
@@ -226,6 +259,8 @@ export default function App() {
               run={run}
               extensionConnected={snapshot.extensionConnected}
               resolving={snapshot.resolver.running}
+              onModeChanged={announceMode}
+              onShowGuide={() => setGuide({ starting: false })}
               onToast={(text) => pushToast({ kind: 'success', text })}
             />
           )}
@@ -248,7 +283,21 @@ export default function App() {
       )}
 
       {clipboardOffer && (
-        <ClipboardPrompt offer={clipboardOffer} api={api} run={run} onToast={(text) => pushToast({ kind: 'success', text })} onClose={clearClipboardOffer} />
+        <ClipboardPrompt offer={clipboardOffer} api={api} run={run} onToast={(text) => pushToast({ kind: 'success', text })} onClose={clearClipboardOffer} onResolve={startResolve} />
+      )}
+
+      {guide && (
+        <ModeGuide
+          mode={settings.resolveMode}
+          starting={guide.starting}
+          extensionConnected={snapshot.extensionConnected}
+          hidden={settings.modeGuideHidden}
+          onSwitchMode={(mode) => void saveSettings({ resolveMode: mode })}
+          onHide={(hidden) => void saveSettings({ modeGuideHidden: hidden })}
+          onStart={() => void run(api.resolverStart())}
+          onOpenSettings={() => setView('settings')}
+          onClose={() => setGuide(null)}
+        />
       )}
 
       <Toasts toasts={toasts} onDismiss={dismissToast} />

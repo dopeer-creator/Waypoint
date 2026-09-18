@@ -2,6 +2,21 @@
 
 All notable changes to Waypoint. Newest first.
 
+## v0.7.3
+Waypoint now explains its two resolve modes, and a new version downloading is no longer a secret.
+
+- **A quick guide before the first automatic run.** The first time you resolve in automatic mode, a short
+  popup explains what's about to happen: Waypoint opens its own Chrome window and clicks through for you,
+  **don't click inside those tabs or close them**, and you're only needed if one asks for a Cloudflare check.
+  It also mentions the other mode, and one click switches to it — the popup then explains that one instead.
+  Tick **Don't show again** to skip it; **How it works** in Settings brings it back any time.
+- **Switching mode tells you what changed.** Changing the resolve mode in Settings shows a short note on what
+  the new mode does, with a link to the new **Resolve modes** section of the README. It fades out by itself.
+- **Updates you can see.** While a new version downloads, the sidebar says so in the accent color —
+  "Downloading v0.7.3 · 42%" with a progress bar — instead of muted text in the corner. When it's ready, the
+  same spot restarts to install it.
+- **Check for updates is a real button** now, kept low-key until there's news.
+
 ## v0.7.2
 The speed graph reaches back a whole day, and can keep a record if you want one.
 
