@@ -1,16 +1,110 @@
 <p align="center"><img src="docs/banner.png" alt="Waypoint — Open Source Downloader" width="720"></p>
 
-Waypoint is a Windows batch download manager in the spirit of JDownloader, built for file hosts that sit behind Cloudflare Turnstile. Paste a pile of links, let Waypoint walk them through a real browser one at a time, then download everything in parallel and unpack the archives.
+Waypoint is a free, open-source download manager for Windows, in the spirit of JDownloader. It's built for
+free file hosts — the ones with "Continue", "Free Download" and countdown pages, often behind a Cloudflare
+check. Paste a pile of links, and Waypoint works through those pages for you, downloads every file in parallel,
+and unpacks the archives at the end.
 
-## How it works
+- [Install](#install)
+- [How to use Waypoint](#how-to-use-waypoint) — step by step
+- [Resolve modes](#resolve-modes) — Automatic vs. In your browser
+- [Settings worth knowing](#settings-worth-knowing)
+- [Troubleshooting](#troubleshooting)
+- [Themes](#themes)
+- [For developers](#development)
 
-1. **Link Grabber.** Paste any text. Waypoint pulls out every URL, drops duplicates, and lists them as *Pending*.
-2. **Resolve.** Waypoint opens each link in your installed Chrome (or Edge), one tab at a time, using its own persistent profile. Turnstile usually passes by itself. If it doesn't, the window comes to the front so you can click the check. Waypoint then clicks the host's download button (or waits for you to), catches the file request, and stores the direct URL with the cookies needed to fetch it.
-3. **Batch.** Pick a base folder, a batch name, and whether to extract. Files go to `<folder>\<batch name>\`.
-4. **Download.** aria2 downloads the files, 4 at a time by default, with several connections per file. You can pause and resume single files, whole batches, or everything. If a host rejects a link because it expired, Waypoint re-resolves it automatically.
-5. **Extract.** When every file in the batch has finished, WinRAR extracts each archive set once, starting from its first volume (`.part1.rar`, `.rar` + `.r00`, `.zip`, `.7z`, `.001`). Archives are kept.
+## Install
 
-Downloads survive restarts: aria2 resumes from its `.aria2` control files the next time Waypoint opens.
+1. Download `Waypoint-Setup-<version>.exe` from the [latest release](https://github.com/dopeer-creator/Waypoint/releases/latest).
+2. Run it. The installer isn't code-signed yet, so Windows SmartScreen may warn you: click **More info → Run
+   anyway**.
+3. Make sure you have **Google Chrome** or **Microsoft Edge** installed (Waypoint uses it to open the host
+   pages), and **WinRAR** if you want archives unpacked automatically.
+
+Waypoint updates itself. It checks for a new version when it opens and every few hours after; while one
+downloads, the bottom of the sidebar says so in color, and **Restart to update** installs it.
+
+## How to use Waypoint
+
+### 1. Add your links
+
+Open **Link Grabber** (the first page). Any of these works:
+
+- **Paste** links into the big box — one per line, or any text that contains them — then click **Add links**
+  (or press <kbd>Ctrl</kbd> + <kbd>Enter</kbd>).
+- **Copy links straight off a web page** and paste. If you copied the link *text* (like a list of file names),
+  Waypoint still finds the real addresses behind them.
+- **Drop a `.txt`, `.csv` or saved `.html` file** of links onto the box, or use **Import from file**.
+- **Clipboard watching** (off by default, in Settings): when you copy download links anywhere, Waypoint asks
+  whether to add them. It only asks about links that look like files, asks once for a burst of copies, and you
+  can mute a host with **Never for …**.
+
+Duplicates are dropped, and each link shows up as **Pending**.
+
+### 2. Choose how links get resolved
+
+A host's share link isn't the file itself — someone has to click through its pages to reach the real download.
+That's "resolving", and Waypoint can do it two ways (**Settings → Link resolving**):
+
+- **Automatic** (the default) — Waypoint opens the links in its own Chrome window and clicks through for you.
+- **In your browser** — links open as normal tabs in your own browser; you click Download, and a small
+  Waypoint browser extension hands the file over. Needs a one-time extension install.
+
+Not sure? Start with Automatic. [Resolve modes](#resolve-modes) explains both in more detail.
+
+### 3. Resolve
+
+Click **Resolve**. The first time, a short guide explains what's about to happen.
+
+**In Automatic mode:**
+
+- A Chrome window opens and Waypoint works through several links at once, clicking "Continue", "Free
+  Download" and so on, and waiting out countdowns.
+- **Don't click inside those tabs and don't close them** — a stray click can hit an ad and throw a link off.
+  They close themselves.
+- If a tab jumps to the front and Waypoint shows **Needs you**, it's a Cloudflare check: complete it, then leave
+  the tab alone again.
+- **Skip** gives up on the link being worked on; **Stop** ends the run (finished links are kept).
+
+**In your browser mode:** each link opens as a tab in your browser. Pass any check, click the host's Download
+button as usual, and Waypoint takes the file from there.
+
+As links finish they turn **Resolved**. A link that fails can be retried with the retry button on its row.
+
+### 4. Start the downloads
+
+When links are resolved, click **Start downloads**. In the dialog:
+
+- **Save to** — the folder to download into. Each batch gets its own subfolder, named after the batch.
+- **Batch name** — Waypoint suggests one from the file names. If you pasted several games at once, **Separate
+  batch per app** gives each its own batch and folder.
+- **Extract archives after download** — unpacks the `.rar` / `.zip` / `.7z` sets with WinRAR once every file has
+  arrived. **Delete archives after extract** removes the original archive files after a clean extraction.
+- The dialog shows the batch size against your free disk space, and warns if it won't fit.
+
+### 5. Watch and manage the downloads
+
+The **Downloads** page lists each batch with its files underneath.
+
+- **Pause / resume** a single file, a whole batch, or everything (**Pause all** / **Resume all**).
+- **Move** queued files up or down to change what downloads next.
+- The **Speed** panel at the bottom charts your download speed — pick **5m, 30m, 1h, 6h or 24h** to see that far
+  back, and hover the line for exact numbers.
+- Closing Waypoint mid-download is fine: downloads pick up where they left off next time. (With **Close to
+  tray** on, closing the window keeps Waypoint downloading in the background.)
+- If a host's download link expires partway, Waypoint fetches a fresh one by itself.
+
+### 6. Extraction
+
+When the last file of a batch arrives, Waypoint extracts each archive set once, starting from its first part.
+The batch shows **Extracting**, then **Done**; the folder button opens it. If extraction fails (a missing part,
+say), the error shows on the batch, and the archive button runs it again.
+
+### 7. Clean up
+
+The bin icon on a batch removes it. You'll be asked whether to **also delete the downloaded files** — the dialog
+says exactly how many files and how much space. Only files Waypoint downloaded for that batch are deleted:
+anything extracted from them, or anything else in the folder, stays. Deletion is permanent.
 
 ## Resolve modes
 
@@ -38,20 +132,47 @@ Links open as **normal tabs in your own browser** (Brave, Chrome or Edge), with 
 
 Use this mode when a host won't cooperate with the automatic window, or when you'd rather click yourself.
 
+## Settings worth knowing
+
+- **Simultaneous downloads** and **Connections per file** — how many files download at once, and how many
+  connections each uses. Lower them if a host starts refusing you.
+- **Speed limit** — caps total download speed (0 = unlimited). The speed graph draws the cap as a dashed line.
+- **WinRAR** — Waypoint finds it automatically; set the path here if it can't.
+- **Watch clipboard** — the ask-before-adding clipboard prompt described above. Muted hosts are listed here.
+- **Save speed history** — keeps a per-minute speed record on your PC (last 30 days) so past days can be opened
+  from the speed graph. Off by default; nothing leaves your computer.
+- **Reset all** — puts every setting back to how Waypoint ships. Your links and downloaded files aren't touched.
+
+## Troubleshooting
+
+- **A link keeps failing in Automatic mode.** Some hosts don't cooperate with an automated window. Switch to
+  **In your browser** mode and click Download yourself.
+- **"Needs you" won't go away.** The tab waiting for you is in the Chrome window Waypoint opened — complete the
+  check there. If nothing is shown, **Skip** moves on.
+- **In your browser mode does nothing.** The extension probably isn't connected: **Settings → Link resolving**
+  shows its status and walks you through installing it.
+- **Extraction failed.** Usually a part is missing or damaged. Retry the failed file, then use the archive
+  button on the batch to extract again.
+- **Something else.** **Settings → Open logs** opens Waypoint's log folder — attach the latest log when you
+  [open an issue](https://github.com/dopeer-creator/Waypoint/issues).
+
 ## Themes
 
-Settings → Appearance has four core themes (also cycled from the sidebar) and five animated **destination** themes — Ragnarök, Jackdaw, Night City, Tsushima, and Wasteland. Each has its own colours, fonts, chrome, and a code-drawn animated background (Matrix code rain, neon glow, ink that follows the cursor, and so on).
+The **Themes** page (in the sidebar) has four quick core themes — also cycled from the theme button at the bottom
+of the sidebar — and five animated **destination** themes: Ragnarök, Jackdaw, Night City, Tsushima and Wasteland.
+Each has its own colours, fonts and a code-drawn animated background.
 
 Give a destination theme a photoreal look with your own wallpaper:
 
-- In Settings, pick a destination theme, then **Choose image…** — or drop an image straight into `%APPDATA%\Waypoint\themes\` named after the theme, e.g. `nightcity.jpg`, `tsushima.png` (`jpg`, `jpeg`, `png`, `webp`, `avif`, `gif`). **Open themes folder** opens that location.
+- Pick the theme, then **Choose image…** — or drop an image into `%APPDATA%\Waypoint\themes\` named after the
+  theme, e.g. `nightcity.jpg` (`jpg`, `jpeg`, `png`, `webp`, `avif`, `gif`). **Open themes folder** opens it.
 - The image shows behind a readable scrim (tune it with **Background dimming**) while the animation plays on top.
-- Images stay on your PC. Waypoint never uploads them, and none ship with the app — so use whatever wallpaper you like. The bundled themes ship only original, code-drawn art.
+- Images stay on your PC. Waypoint never uploads them, and none ship with the app.
 
 ## Requirements
 
 - Windows 10 or 11 (x64)
-- Google Chrome or Microsoft Edge, used for resolving
+- Google Chrome or Microsoft Edge, used for resolving (Brave, Chrome or Edge for In your browser mode)
 - WinRAR, for extraction. Waypoint finds it through the registry, or you can set its path in Settings.
 
 aria2 1.37.0 ships inside the app, so you don't install it separately.
@@ -112,7 +233,7 @@ The installer is unsigned, so Windows SmartScreen warns on first install. Choose
 
 ## Adding a host adapter
 
-Every host goes through `src/main/resolver/generic.ts`, which detects Turnstile and clicks the most likely download control. When a host needs special handling, add an adapter in `src/main/resolver/adapters.ts`:
+Every host goes through `src/main/resolver/generic.ts`, which detects a Cloudflare check, waits out countdowns, and clicks the most likely download control — following multi-step pages ("Continue" → "Free Download" → "Start Download") and never a paid or sign-in control. When a host needs special handling, add an adapter in `src/main/resolver/adapters.ts`:
 
 ```ts
 export const exampleHost: HostAdapter = {
@@ -120,16 +241,19 @@ export const exampleHost: HostAdapter = {
   id: 'example-host',
   match: (url) => url.hostname.endsWith('example-host.com'),
   maxConnections: 1, // host bans parallel connections
+  // Returns a label for what it clicked (it shows in the log), or null when nothing is clickable yet.
   triggerDownload: async (page) => {
     const button = page.locator('#download-button:not([disabled])')
-    if (!(await button.isVisible())) return false
+    if (!(await button.isVisible())) return null
     await button.click()
-    return true
+    return 'download button'
   }
 }
 ```
 
 Adapters only decide how to verify and trigger. The resolver catches the resulting browser download, so adapters never parse direct links themselves.
+
+Before changing how the picker clicks, run `npm run test:picker`: it replays recorded host pages from `tests/fixtures` against the real picker, so a change for one host can't quietly break another.
 
 ## Project layout
 
