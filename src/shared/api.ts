@@ -10,6 +10,7 @@ import type {
   RemovalPlan,
   RemovalResult,
   Settings,
+  SpeedSeries,
   Toast,
   UpdateState
 } from './types'
@@ -47,6 +48,8 @@ export interface InvokeApi {
   resumeLinks(ids: number[]): Promise<void>
   pauseBatch(id: number): Promise<void>
   resumeBatch(id: number): Promise<void>
+  /** Total download speed history: `points` buckets of `step` seconds, ending now. */
+  speedHistory(step: number, points: number): Promise<SpeedSeries>
   /** What removeBatch(id, true) would delete, so the confirm can name a size rather than guess. */
   removalPlan(id: number): Promise<RemovalPlan>
   removeBatch(id: number, deleteFiles: boolean): Promise<RemovalResult>
@@ -92,6 +95,7 @@ export const invokeMethods = [
   'resumeLinks',
   'pauseBatch',
   'resumeBatch',
+  'speedHistory',
   'removalPlan',
   'removeBatch',
   'extractBatch',

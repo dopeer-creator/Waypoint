@@ -1280,6 +1280,150 @@ kbd {
   flex: 1;
 }
 
+/*
+ * Speed panel: docked to the bottom of the window, torrent-client style. The page fills the view so a short list
+ * leaves the panel at the bottom edge (margin-top: auto), and sticky keeps it there while a long list scrolls
+ * under it. .content has 32px of bottom padding, and both the sticky inset and the page end are measured from
+ * inside it, so -16px on each lands the panel 16px off the window edge whether the list is short or long.
+ */
+.downloads-page {
+  min-height: 100%;
+}
+
+.speed-panel {
+  position: sticky;
+  bottom: -16px;
+  z-index: 2;
+  margin-top: auto;
+  margin-bottom: -16px;
+  padding: 10px 14px;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.speed-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 32px;
+}
+
+.speed-panel-head .spacer {
+  flex: 1;
+}
+
+.speed-panel-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 2px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.speed-panel-toggle:hover {
+  background: var(--card-hover);
+}
+
+.speed-panel-toggle .chevron {
+  color: var(--text-3);
+  transition: transform 0.15s ease;
+}
+
+.speed-panel.open .speed-panel-toggle .chevron {
+  transform: rotate(90deg);
+}
+
+.speed-panel-title {
+  font-weight: 650;
+}
+
+.speed-panel-stats {
+  display: flex;
+  gap: 18px;
+}
+
+.speed-panel-stats span {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.speed-panel-stats small {
+  color: var(--text-3);
+  font-size: 11.5px;
+}
+
+.speed-panel-stats strong {
+  font-size: 13px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.segmented.small button {
+  height: 24px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.speed-plot {
+  position: relative;
+  margin-top: 8px;
+}
+
+.speed-plot svg {
+  display: block;
+}
+
+.speed-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.speed-axis {
+  fill: var(--text-3);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.speed-limit {
+  stroke: var(--text-3);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.speed-crosshair {
+  stroke: var(--text-3);
+  stroke-width: 1;
+}
+
+.speed-tip {
+  position: absolute;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+  font-size: 12px;
+  line-height: 1.3;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.speed-tip strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.speed-tip span {
+  color: var(--text-3);
+}
+
 .grabber-row {
   grid-template-columns: 18px minmax(0, 1fr) 160px 130px 72px;
 }

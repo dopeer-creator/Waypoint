@@ -4,6 +4,7 @@ import type { AppSnapshot, Batch, LinkItem } from '@shared/types'
 import { Icon } from '../components/Icons'
 import { RemoveBatchDialog } from '../components/RemoveBatchDialog'
 import { SpeedGraph } from '../components/SpeedGraph'
+import { SpeedPanel } from '../components/SpeedPanel'
 import { Button, Chip, IconButton, Progress, type Tone } from '../components/ui'
 import { formatBytes, formatDuration, formatEta, formatSpeed, percent } from '../lib/format'
 import { batchStatus, downloadStatus } from '../lib/status'
@@ -69,7 +70,7 @@ export function Downloads({ snapshot, api, run, onGoToGrabber, deleteFilesDefaul
   }
 
   return (
-    <div className="page">
+    <div className="page downloads-page">
       <div className="toolbar">
         <div className="tabs">
           {(
@@ -136,6 +137,8 @@ export function Downloads({ snapshot, api, run, onGoToGrabber, deleteFilesDefaul
         })}
         {visibleBatches.length === 0 && <div className="card empty">Nothing in this view.</div>}
       </div>
+
+      <SpeedPanel api={api} speedNow={snapshot.stats.speed} />
 
       {removing && (
         <RemoveBatchDialog

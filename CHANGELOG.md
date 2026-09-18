@@ -2,6 +2,20 @@
 
 All notable changes to Waypoint. Newest first.
 
+## v0.7.1
+A proper speed graph, docked at the bottom of the Downloads page.
+
+- **Speed panel.** A chart of total download speed now sits along the bottom of the Downloads page, the way
+  torrent clients do it. It stays put while a long list scrolls underneath, and collapses to a one-line bar
+  showing the current speed.
+- **Minutes or hours at a glance.** Pick 1s, 5s, 30s or 1m per point to see the last 2 minutes, 10 minutes,
+  hour, or 2 hours. The axes are in real units (MB/s) with gridlines, scaled to the busiest moment on screen.
+- **Hover for detail.** Point at the line to read the speed at that moment and the time it happened.
+- **Now, average and peak** are shown above the chart, and your speed limit, if you've set one, is drawn as a
+  dashed line so you can see when downloads are hitting it.
+- **History survives leaving the page.** Waypoint records the speed in the background, so the chart is already
+  filled in when you open Downloads instead of starting from nothing.
+
 ## v0.7.0
 Removing a batch can now take its downloaded files with it.
 

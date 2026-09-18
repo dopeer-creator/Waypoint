@@ -147,6 +147,18 @@ export interface RemovalResult {
   failed: number
 }
 
+/** Total download speed over time, for the Downloads page's chart. */
+export interface SpeedSeries {
+  /** Seconds per point. */
+  step: number
+  /** Epoch second at which the last point's bucket starts. */
+  end: number
+  /** Average bytes/s in each bucket, oldest first. */
+  values: number[]
+  /** The configured speed cap in bytes/s, 0 when unlimited. */
+  limit: number
+}
+
 export interface DiskSpace {
   free: number
   total: number

@@ -4,7 +4,7 @@ Working list. Newest thinking at the bottom of each item; tick things off as the
 
 Numbers stay put as things ship, so the gaps are expected. Done so far: **1** drag-and-drop link lists,
 **4** exact batch sizes and **5** the clipped Downloads rows (all v0.6.3); **3** the clipboard prompt and
-**9** reset to defaults (v0.6.4); **10** deleting files on removal (v0.7.0).
+**9** reset to defaults (v0.6.4); **10** deleting files on removal (v0.7.0); **8** the speed graph panel (v0.7.1).
 
 ---
 
@@ -52,21 +52,6 @@ never let an auto-click land on a paid or account control.
 
 Keep building out the destination themes: more scenes, better motion, and per-theme polish on the tables and
 toolbars rather than only the background. Worth a pass over how a user's own wallpaper interacts with each scene.
-
-## 8. Speed graph panel on the Downloads page
-
-A proper speed chart in a panel below the download list, the way desktop torrent clients do it — not the small
-sparkline that already sits in the toolbar.
-
-- Time on the x-axis with a **resolution** selector (e.g. 5s / 30s / 1m per step) and gridlines, so the window
-  covers minutes or hours rather than the last N samples.
-- Y-axis labelled in real units (MB/s), scaled to the peak in view.
-- Plot aggregate download rate; consider a second line per active file, or payload vs total, once the aggregate
-  reads well. Keep the line count low enough to stay legible.
-- Needs a rolling history in the main process — the toolbar sparkline keeps its samples in React state, so it
-  resets whenever the view unmounts and can't cover a long window. Store samples where the speed is already
-  measured and send them with the snapshot.
-- Collapsible, and cheap to render: it will be on screen for hours during a large batch.
 
 ## 7. Logins — decide the shape before building
 

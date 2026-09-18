@@ -27,6 +27,7 @@ import { extractUrls, hostOf, looksLikeDownload } from './links'
 import { aria2Path, dbPath, extensionInstallDir, extensionSourceDir, iconPath, themesDir } from './paths'
 import { installedBrowsers, Resolver } from './resolver/resolver'
 import { SettingsService } from './settings'
+import { SpeedHistory } from './speedhistory'
 import { registerThemeScheme, ThemeMedia } from './thememedia'
 import { Updater } from './updater'
 
@@ -60,6 +61,7 @@ let resolver: Resolver
 let downloads: DownloadManager
 let updater: Updater
 let capture: CaptureServer
+let speedHistory: SpeedHistory
 const themeMedia = new ThemeMedia()
 
 /** Shows the main window, recreating it if it was closed (tray click or launching Waypoint again). */
@@ -426,6 +428,7 @@ function registerIpc(): void {
     resumeLinks: async (ids) => downloads.resumeLinks(ids).then(pushSnapshot),
     pauseBatch: async (id) => downloads.pauseBatch(id).then(pushSnapshot),
     resumeBatch: async (id) => downloads.resumeBatch(id).then(pushSnapshot),
+    speedHistory: async (step, points) => speedHistory.series(step, points),
     removalPlan: async (id) => downloads.removalPlan(id),
     removeBatch: async (id, deleteFiles) => {
       const result = await downloads.removeBatch(id, deleteFiles)
@@ -508,6 +511,7 @@ async function cleanup(): Promise<void> {
   cleanedUp = true
   resolver.stop()
   capture.stop()
+  speedHistory?.stop()
   await downloads.shutdown().catch((err) => log.warn('aria2 shutdown failed', err))
   store.close()
 }
@@ -517,6 +521,8 @@ async function main(): Promise<void> {
   settings = new SettingsService(store)
   resolver = new Resolver(store, settings)
   downloads = new DownloadManager(store, settings, new Aria2(aria2Path()))
+  speedHistory = new SpeedHistory(() => ({ speed: downloads.totalSpeed(), limit: settings.get().speedLimitKib * 1024 }))
+  speedHistory.start()
   updater = new Updater((state) => send('wp:update', state))
 
   // The browser extension offers downloads here; the resolver takes the one it's waiting on.

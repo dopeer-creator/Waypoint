@@ -54,6 +54,13 @@ export class DownloadManager extends EventEmitter {
     return this.speeds.get(linkId) ?? 0
   }
 
+  /** Bytes per second across every download, as of the last aria2 poll. */
+  totalSpeed(): number {
+    let sum = 0
+    for (const speed of this.speeds.values()) sum += speed
+    return sum
+  }
+
   /** Starts aria2 and re-adds anything that was downloading when the app last closed. aria2 resumes from its .aria2 files. */
   async init(): Promise<void> {
     const s = this.settings.get()
