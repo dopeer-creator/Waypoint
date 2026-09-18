@@ -4,7 +4,7 @@ Working list. Newest thinking at the bottom of each item; tick things off as the
 
 Numbers stay put as things ship, so the gaps are expected. Done so far: **1** drag-and-drop link lists,
 **4** exact batch sizes and **5** the clipped Downloads rows (all v0.6.3); **3** the clipboard prompt and
-**9** reset to defaults (v0.6.4).
+**9** reset to defaults (v0.6.4); **10** deleting files on removal (v0.7.0).
 
 ---
 
@@ -67,25 +67,6 @@ sparkline that already sits in the toolbar.
   resets whenever the view unmounts and can't cover a long window. Store samples where the speed is already
   measured and send them with the snapshot.
 - Collapsible, and cheap to render: it will be on screen for hours during a large batch.
-
-## 10. Removing a download should offer to delete the file too
-
-Removing a batch or a file from the Downloads list only forgets it — the bytes stay on disk, so clearing the list
-after a few big batches quietly leaves tens of gigabytes behind with no sign of it in the app.
-
-- Ask on remove whether to delete the downloaded files as well, with **yes** as the default.
-- Send files to the **Recycle Bin**, not a permanent unlink: Electron's `shell.trashItem()` does this, costs
-  nothing, and means a wrong answer is recoverable. This matters precisely *because* the default is yes — one
-  reflexive confirm on a finished 40GB batch is otherwise unrecoverable.
-- Say what will go: how many files and how much data, and the folder. "Delete 19 files (38.2 GB)" is a decision;
-  "Also delete files?" is a guess.
-- Decide what a removal covers when a batch was extracted — the archives, the extracted output, or both. The
-  archives are reproducible by downloading again; the extracted folder may be what the user actually wants to
-  keep, and may contain files Waypoint never downloaded.
-- Partly-downloaded files and their `.aria2` control files should go without ceremony; those are worthless alone.
-- Remember the answer as a setting (default yes) so it stops asking, with the choice still available per removal.
-- Never delete anything outside the batch's own folder, and never the folder itself if it holds anything Waypoint
-  didn't put there.
 
 ## 7. Logins — decide the shape before building
 

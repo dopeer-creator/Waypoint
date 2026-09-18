@@ -195,7 +195,17 @@ export default function App() {
               onOpenSettings={() => setView('settings')}
             />
           )}
-          {view === 'downloads' && <Downloads snapshot={snapshot} api={api} run={run} onGoToGrabber={() => setView('grabber')} />}
+          {view === 'downloads' && (
+            <Downloads
+              snapshot={snapshot}
+              api={api}
+              run={run}
+              onGoToGrabber={() => setView('grabber')}
+              deleteFilesDefault={settings.deleteFilesOnRemove}
+              onRememberDeleteFiles={(v) => void saveSettings({ deleteFilesOnRemove: v })}
+              onToast={(text) => pushToast({ kind: 'success', text })}
+            />
+          )}
           {view === 'themes' && (
             <ThemesView
               settings={settings}

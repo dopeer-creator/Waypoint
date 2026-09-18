@@ -426,7 +426,12 @@ function registerIpc(): void {
     resumeLinks: async (ids) => downloads.resumeLinks(ids).then(pushSnapshot),
     pauseBatch: async (id) => downloads.pauseBatch(id).then(pushSnapshot),
     resumeBatch: async (id) => downloads.resumeBatch(id).then(pushSnapshot),
-    removeBatch: async (id) => downloads.removeBatch(id).then(pushSnapshot),
+    removalPlan: async (id) => downloads.removalPlan(id),
+    removeBatch: async (id, deleteFiles) => {
+      const result = await downloads.removeBatch(id, deleteFiles)
+      pushSnapshot()
+      return result
+    },
     extractBatch: async (id) => {
       downloads.extract(id)
       pushSnapshot()

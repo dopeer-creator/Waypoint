@@ -7,6 +7,8 @@ import type {
   CreateBatchInput,
   DiskSpace,
   EnvInfo,
+  RemovalPlan,
+  RemovalResult,
   Settings,
   Toast,
   UpdateState
@@ -45,7 +47,9 @@ export interface InvokeApi {
   resumeLinks(ids: number[]): Promise<void>
   pauseBatch(id: number): Promise<void>
   resumeBatch(id: number): Promise<void>
-  removeBatch(id: number): Promise<void>
+  /** What removeBatch(id, true) would delete, so the confirm can name a size rather than guess. */
+  removalPlan(id: number): Promise<RemovalPlan>
+  removeBatch(id: number, deleteFiles: boolean): Promise<RemovalResult>
   extractBatch(id: number): Promise<void>
   pauseAll(): Promise<void>
   resumeAll(): Promise<void>
@@ -88,6 +92,7 @@ export const invokeMethods = [
   'resumeLinks',
   'pauseBatch',
   'resumeBatch',
+  'removalPlan',
   'removeBatch',
   'extractBatch',
   'pauseAll',

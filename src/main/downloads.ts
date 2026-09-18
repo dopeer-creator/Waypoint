@@ -1,8 +1,8 @@
 import { EventEmitter } from 'node:events'
-import { mkdir, rm } from 'node:fs/promises'
-import { join } from 'node:path'
+import { mkdir, rm, stat } from 'node:fs/promises'
+import { isAbsolute, join, relative, resolve } from 'node:path'
 import log from 'electron-log/main'
-import type { Batch, CreateBatchInput } from '../shared/types'
+import type { Batch, CreateBatchInput, RemovalPlan, RemovalResult } from '../shared/types'
 import { Aria2, Aria2Error, type Aria2Status } from './aria2'
 import type { LinkRecord, Store } from './db'
 import { extractArchive, findWinRAR, groupArchives } from './extract'
@@ -332,8 +332,56 @@ export class DownloadManager extends EventEmitter {
     for (const batch of this.store.listBatches()) if (batch.status === 'paused') await this.resumeBatch(batch.id)
   }
 
-  /** Removes a batch from the list. Downloaded files stay on disk. */
-  async removeBatch(batchId: number): Promise<void> {
+  /**
+   * The files Waypoint itself wrote for a batch: each link's own download, as a full path. Deliberately narrow —
+   * removal is only responsible for what Waypoint put there. Extracted output, and anything the user added to
+   * the folder, is never in this list.
+   */
+  private ownFiles(batchId: number): string[] {
+    const batch = this.store.getBatch(batchId)
+    if (!batch) return []
+    const root = resolve(batch.dir)
+    // A re-downloaded batch can share a folder and file names with an older one; its files are not ours to take.
+    const claimed = new Set(
+      this.store
+        .listLinks()
+        .filter((l) => l.batchId !== batchId && l.path)
+        .map((l) => resolve(l.path!).toLowerCase())
+    )
+    const files = new Set<string>()
+    for (const link of this.store.linksInBatch(batchId)) {
+      const path = link.path ?? (link.filename ? join(batch.dir, link.filename) : null)
+      if (!path) continue
+      const full = resolve(path)
+      const rel = relative(root, full)
+      if (!rel || rel.startsWith('..') || isAbsolute(rel)) continue // never outside the batch's own folder
+      if (claimed.has(full.toLowerCase())) continue
+      files.add(full)
+    }
+    return [...files]
+  }
+
+  /** What removing a batch with its files would delete, measured on disk rather than from the database. */
+  async removalPlan(batchId: number): Promise<RemovalPlan> {
+    const dir = this.store.getBatch(batchId)?.dir ?? ''
+    let files = 0
+    let bytes = 0
+    for (const path of this.ownFiles(batchId)) {
+      const info = await stat(path).catch(() => null)
+      if (!info?.isFile()) continue // already gone — deleted after extraction, or moved by the user
+      files++
+      bytes += info.size
+    }
+    return { dir, files, bytes }
+  }
+
+  /**
+   * Removes a batch from the list, and with deleteFiles its downloads too — permanently, to free the space now.
+   * (Windows skips the Recycle Bin for files this size anyway.) The confirm dialog, which names the file count
+   * and size, is the safeguard. aria2's .aria2 control files go with them.
+   */
+  async removeBatch(batchId: number, deleteFiles = false): Promise<RemovalResult> {
+    const files = deleteFiles ? this.ownFiles(batchId) : []
     for (const link of this.store.linksInBatch(batchId)) {
       const gid = this.gids.get(link.id)
       if (gid) await this.aria2.remove(gid)
@@ -344,6 +392,17 @@ export class DownloadManager extends EventEmitter {
     }
     this.store.deleteBatch(batchId)
     this.emit('changed')
+
+    let deleted = 0
+    let failed = 0
+    for (const path of files) {
+      await rm(`${path}.aria2`, { force: true }).catch(() => {})
+      if (!(await stat(path).catch(() => null))?.isFile()) continue
+      if (await deleteWithRetry(path)) deleted++
+      else failed++
+    }
+    if (files.length) log.info(`[remove] batch ${batchId}: deleted ${deleted} file(s), ${failed} failed`)
+    return { deleted, failed }
   }
 
   /** Stops downloads for links about to be deleted. */
@@ -435,4 +494,22 @@ export class DownloadManager extends EventEmitter {
     this.emit('changed')
     if (batch) this.emit('batch-done', batch)
   }
+}
+
+/**
+ * Deletes a file for good. aria2 may still hold a download it was just told to stop, and Windows refuses to
+ * delete an open file, so a failure is retried briefly before it counts.
+ */
+async function deleteWithRetry(path: string, attempts = 6): Promise<boolean> {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      await rm(path)
+      return true
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') return true
+      if (i === attempts - 1) log.warn(`[remove] could not delete ${path}: ${(err as Error).message}`)
+      else await new Promise((r) => setTimeout(r, 500))
+    }
+  }
+  return false
 }

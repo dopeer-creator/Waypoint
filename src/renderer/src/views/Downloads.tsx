@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import type { WaypointApi } from '@shared/api'
 import type { AppSnapshot, Batch, LinkItem } from '@shared/types'
 import { Icon } from '../components/Icons'
+import { RemoveBatchDialog } from '../components/RemoveBatchDialog'
 import { SpeedGraph } from '../components/SpeedGraph'
 import { Button, Chip, IconButton, Progress, type Tone } from '../components/ui'
 import { formatBytes, formatDuration, formatEta, formatSpeed, percent } from '../lib/format'
@@ -22,10 +23,15 @@ interface Props {
   api: WaypointApi
   run: <T>(work: Promise<T>) => Promise<T | undefined>
   onGoToGrabber: () => void
+  /** Settings.deleteFilesOnRemove — where the remove dialog's toggle starts. */
+  deleteFilesDefault: boolean
+  onRememberDeleteFiles: (deleteFiles: boolean) => void
+  onToast: (text: string) => void
 }
 
-export function Downloads({ snapshot, api, run, onGoToGrabber }: Props) {
+export function Downloads({ snapshot, api, run, onGoToGrabber, deleteFilesDefault, onRememberDeleteFiles, onToast }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
+  const [removing, setRemoving] = useState<Batch | null>(null)
   // Batches start expanded while running and collapsed once done; clicking flips that default.
   const [flipped, setFlipped] = useState<Set<number>>(new Set())
 
@@ -122,6 +128,7 @@ export function Downloads({ snapshot, api, run, onGoToGrabber }: Props) {
                   return next
                 })
               }
+              onRemove={() => setRemoving(batch)}
               api={api}
               run={run}
             />
@@ -129,6 +136,18 @@ export function Downloads({ snapshot, api, run, onGoToGrabber }: Props) {
         })}
         {visibleBatches.length === 0 && <div className="card empty">Nothing in this view.</div>}
       </div>
+
+      {removing && (
+        <RemoveBatchDialog
+          batch={removing}
+          api={api}
+          run={run}
+          deleteFilesDefault={deleteFilesDefault}
+          onRemember={onRememberDeleteFiles}
+          onToast={onToast}
+          onClose={() => setRemoving(null)}
+        />
+      )}
     </div>
   )
 }
@@ -139,11 +158,12 @@ interface BatchCardProps {
   filter: (l: LinkItem) => boolean
   open: boolean
   onToggle: () => void
+  onRemove: () => void
   api: WaypointApi
   run: <T>(work: Promise<T>) => Promise<T | undefined>
 }
 
-function BatchCard({ batch, links, filter, open, onToggle, api, run }: BatchCardProps) {
+function BatchCard({ batch, links, filter, open, onToggle, onRemove, api, run }: BatchCardProps) {
   const total = links.reduce((s, l) => s + l.totalBytes, 0)
   const done = links.reduce((s, l) => s + (l.dlStatus === 'complete' ? l.totalBytes : l.doneBytes), 0)
   const speed = links.reduce((s, l) => s + l.speed, 0)
@@ -161,10 +181,6 @@ function BatchCard({ batch, links, filter, open, onToggle, api, run }: BatchCard
   const allComplete = links.length > 0 && completed === links.length
 
   const stop = (e: React.MouseEvent) => e.stopPropagation()
-
-  const removeBatch = () => {
-    if (confirm(`Remove "${batch.name}" from the list?\n\nDownloaded files stay in ${batch.dir}.`)) void run(api.removeBatch(batch.id))
-  }
 
   return (
     <div className="card batch">
@@ -196,7 +212,7 @@ function BatchCard({ batch, links, filter, open, onToggle, api, run }: BatchCard
             <IconButton icon="archive" label={batch.extractStatus === 'off' ? 'Extract archives' : 'Extract again'} onClick={() => run(api.extractBatch(batch.id))} />
           )}
           <IconButton icon="folder" label="Open folder" onClick={() => run(api.openPath(batch.dir))} />
-          <IconButton icon="trash" label="Remove from list" onClick={removeBatch} disabled={batch.status === 'extracting'} />
+          <IconButton icon="trash" label="Remove" onClick={onRemove} disabled={batch.status === 'extracting'} />
         </div>
       </div>
 

@@ -2,6 +2,22 @@
 
 All notable changes to Waypoint. Newest first.
 
+## v0.7.0
+Removing a batch can now take its downloaded files with it.
+
+- **Delete the files, not just the list entry.** Removing a batch used to only forget it — the files stayed on
+  disk, so clearing the list after a few big batches quietly left tens of gigabytes behind. The remove dialog
+  now offers to delete them too, and says exactly what that means: "Also delete 19 downloaded files (38.2 GB)",
+  measured on disk at the moment you ask.
+- **Only what Waypoint downloaded.** Removal deletes the files it downloaded for that batch and nothing else.
+  Extracted output, anything you put in the folder yourself, and the folder itself are never touched. A file
+  that another batch still lists is kept, and nothing outside the batch's own folder is ever deleted.
+- **Half-finished downloads go too**, along with aria2's `.aria2` progress files, which are useless on their own.
+- **On by default, and remembered.** The toggle starts on; switch it off once and the dialog remembers that
+  next time. It's still shown on every removal.
+- Files are deleted permanently rather than sent to the Recycle Bin — Windows skips the bin for files this
+  size anyway, and the point is usually to get the space back.
+
 ## v0.6.4
 A clipboard prompt that only speaks when it's useful, and a way back from broken settings.
 

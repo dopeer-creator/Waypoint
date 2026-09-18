@@ -111,6 +111,8 @@ export interface Settings {
   clipboardIgnoreHosts: string[]
   /** Delete original archives after a successful extraction (default off). */
   deleteArchivesAfterExtract: boolean
+  /** Removing a batch also deletes its downloaded files (default on; the dialog asks each time). */
+  deleteFilesOnRemove: boolean
   closeToTray: boolean
   maxResolveAttempts: number
   /** How much to darken a premium theme's background image so text stays readable, 0-90 (%). */
@@ -129,6 +131,20 @@ export interface CreateBatchInput {
   extract: boolean
   deleteArchives: boolean
   linkIds: number[]
+}
+
+/** What removing a batch with its files would delete: only files Waypoint downloaded that are still on disk. */
+export interface RemovalPlan {
+  dir: string
+  files: number
+  bytes: number
+}
+
+export interface RemovalResult {
+  /** Files deleted. */
+  deleted: number
+  /** Files that couldn't be moved — usually still open in another program. */
+  failed: number
 }
 
 export interface DiskSpace {
