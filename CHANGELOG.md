@@ -2,6 +2,17 @@
 
 All notable changes to Waypoint. Newest first.
 
+## v0.7.4
+Clearer instructions, in the app and on GitHub.
+
+- **The app no longer contradicts itself about automatic mode.** The Link Grabber and Settings still said sites
+  with Cloudflare checks "usually reject" automatic mode — left over from before it learned to hand a check to
+  you. They now say what actually happens: Waypoint clicks through several links at a time in its own window,
+  leave those tabs alone, and you're only needed if one asks for a check.
+- **A step-by-step guide in the README.** Install, then seven steps from adding links to cleaning up, plus the
+  settings worth knowing and a troubleshooting section — see the
+  [README](https://github.com/dopeer-creator/Waypoint#how-to-use-waypoint).
+
 ## v0.7.3
 Waypoint now explains its two resolve modes, and a new version downloading is no longer a secret.
 

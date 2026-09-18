@@ -121,7 +121,7 @@ export function SettingsView({ settings, save, update, api, run, extensionConnec
           desc={
             handoff
               ? 'Links open as normal tabs in your own browser. You pass any Cloudflare check yourself and click Download; the Waypoint extension hands the file to Waypoint.'
-              : 'Waypoint opens each link in its own Chrome/Edge window and clicks the download button for you. You complete any Cloudflare check in that window.'
+              : 'Waypoint opens the links in its own Chrome/Edge window and clicks through to the download for you, several at a time. Don’t click in those tabs; you’re only needed if one asks for a Cloudflare check.'
           }
         >
           <div className="segmented">

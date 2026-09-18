@@ -332,7 +332,7 @@ function ResolverPanel({
               ? "Waypoint's browser extension isn't connected. Set it up once, and downloads you start in your browser come straight here."
               : handoff
                 ? 'Each link opens as a normal tab in your browser, one at a time. Pass the check and click Download, and Waypoint takes the file.'
-                : 'Each link opens in a browser Waypoint controls. Sites with Cloudflare checks usually reject that, so use "In your browser" mode for them.'}
+                : 'Waypoint opens the links in its own Chrome window and clicks through to the downloads, several at a time. Leave those tabs alone — you’re only needed if one asks for a Cloudflare check.'}
           </div>
         </div>
         <div className="resolver-actions">
