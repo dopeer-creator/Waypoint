@@ -2,6 +2,11 @@
 
 All notable changes to Waypoint. Newest first.
 
+## v0.7.5
+- **Check for updates looks like a button.** It was a faint outlined label in the corner that was easy to read
+  as plain text. It's now a solid, full-width button at the bottom of the sidebar, and it still turns the accent
+  color with a progress bar while a new version downloads.
+
 ## v0.7.4
 Clearer instructions, in the app and on GitHub.
 

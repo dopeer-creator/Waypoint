@@ -70,3 +70,29 @@ means the *method* is public, which is fine, as long as no secret is.
 
 Worth deciding what the feature is actually for first (premium accounts? per-host sessions? syncing?), since the
 answer changes the storage question entirely.
+
+## 14. Torrent downloading — needs discussion
+
+Open question: should Waypoint download torrents and magnet links too, next to the file-host links it handles
+today?
+
+What's already in place: the bundled **aria2 already supports BitTorrent** (its build lists BitTorrent,
+Metalink and DHT support), so the download engine wouldn't change — this is mostly about how torrents fit into
+the app.
+
+Points to settle:
+
+- **How torrents get in.** Paste magnet links into the Link Grabber like any other link, drop or import
+  `.torrent` files, and/or have Waypoint open `magnet:` links from the browser (registering as the handler).
+- **They skip resolving.** A magnet or `.torrent` needs no host page, so it would go straight to a batch.
+  Picking which files inside a torrent to download would need its own small dialog.
+- **Seeding.** aria2 seeds after finishing by default. Decide the default (seed to a ratio, for a time, or not
+  at all) and expose it in Settings, along with an upload speed limit.
+- **What the Downloads page shows.** Peers/seeds, upload speed and ratio next to the existing columns; the speed
+  graph would want an upload line too.
+- **Network.** Listening ports mean a Windows Firewall prompt the first time, and DHT/peer traffic runs in the
+  background while anything seeds.
+- **Responsibility.** Waypoint would be a general-purpose client; what gets downloaded is the user's call. Worth
+  a line in the README either way.
+- **Leave the resolver alone.** The download-button picker deliberately never clicks a host's "torrent" control,
+  and that stays as it is — this is a separate way in, not a change to how host pages are handled.

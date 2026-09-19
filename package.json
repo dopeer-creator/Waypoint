@@ -1,7 +1,7 @@
 {
   "name": "waypoint",
   "productName": "Waypoint",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "description": "Waypoint — Open Source Downloader",
   "main": "out/main/index.js",
   "author": "dopeer-creator",
