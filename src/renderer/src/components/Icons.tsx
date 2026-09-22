@@ -71,7 +71,14 @@ const PATHS = {
       <ellipse cx="12" cy="5.5" rx="8" ry="2.5" />
       <path d="M4 5.5v13c0 1.4 3.6 2.5 8 2.5s8-1.1 8-2.5v-13M4 12c0 1.4 3.6 2.5 8 2.5s8-1.1 8-2.5" />
     </>
-  )
+  ),
+  search: (
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <path d="M21 21l-4.3-4.3" />
+    </>
+  ),
+  pencil: <path d="M4 20h4l10.5-10.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16v4z M13 6l5 5" />
 } satisfies Record<string, ReactNode>
 
 export type IconName = keyof typeof PATHS

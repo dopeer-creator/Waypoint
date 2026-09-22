@@ -112,7 +112,25 @@ function pushSnapshot(): void {
     const snap = snapshot()
     win.webContents.send('wp:snapshot', snap)
     updateTaskbarProgress(win, snap)
+    updateTrayTooltip(snap)
   }, 150)
+}
+
+/** Keeps the tray tooltip readable without opening the window — what's active and how fast. */
+function updateTrayTooltip(snap: AppSnapshot): void {
+  if (!tray) return
+  const { active, queued, speed } = snap.stats
+  tray.setToolTip(
+    active || queued
+      ? `Waypoint — ${active} downloading${queued ? `, ${queued} queued` : ''}${speed > 0 ? ` (${formatSpeedForTray(speed)})` : ''}`
+      : 'Waypoint'
+  )
+}
+
+/** KB/s or MB/s, without pulling in the renderer's format helpers. */
+function formatSpeedForTray(bytesPerSec: number): string {
+  const kib = bytesPerSec / 1024
+  return kib >= 1024 ? `${(kib / 1024).toFixed(1)} MB/s` : `${Math.round(kib)} KB/s`
 }
 
 function updateTaskbarProgress(target: BrowserWindow, snap: AppSnapshot): void {
@@ -422,6 +440,11 @@ function registerIpc(): void {
       pushSnapshot()
       return batch
     },
+    renameBatch: async (id, name) => {
+      const batch = downloads.renameBatch(id, name)
+      pushSnapshot()
+      return batch
+    },
 
     moveLink: async (id, delta) => downloads.moveLink(id, delta).then(pushSnapshot),
     pauseLinks: async (ids) => downloads.pauseLinks(ids).then(pushSnapshot),
@@ -572,7 +595,15 @@ async function main(): Promise<void> {
     const ok = batch.status === 'done'
     const body = ok ? `${batch.name} finished` : `${batch.name} finished with errors`
     toast(ok ? 'success' : 'error', body)
-    if (Notification.isSupported()) new Notification({ title: 'Waypoint', body, icon: iconPath('icon.png') }).show()
+    if (Notification.isSupported()) {
+      const notice = new Notification({ title: 'Waypoint', body, icon: iconPath('icon.png') })
+      // Otherwise a click does nothing — the window stays wherever it was, or stays hidden in the tray.
+      notice.on('click', () => {
+        showWindow()
+        send('wp:focus-batch', { batchId: batch.id })
+      })
+      notice.show()
+    }
   })
 
   // Any link left mid-resolve by a crash goes back to the queue.

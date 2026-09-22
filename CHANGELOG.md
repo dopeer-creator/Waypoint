@@ -2,6 +2,22 @@
 
 All notable changes to Waypoint. Newest first.
 
+## v0.8.0
+Five small fixes found by reading the app's own code, not requested — all independent, none touching the
+resolver.
+
+- **A finished-batch notification now does something when clicked.** It used to fire and go nowhere; clicking
+  it now brings Waypoint to the front, opens Downloads, and scrolls to and briefly highlights that batch.
+- **Search in the Link Grabber.** Once you've pasted more than a handful of links, a box above the list finds
+  one by filename, URL or host — Downloads already had filter tabs; the Grabber had nothing.
+- **Batches can be renamed.** A typo or a bad auto-generated name used to be permanent. Click the pencil next
+  to a batch's name; Enter saves, Escape cancels. The folder on disk keeps its existing name.
+- **The tray tooltip shows what's running.** Hovering the tray icon while the window is closed or minimized to
+  it now reads something like "Waypoint — 2 downloading (4.1 MB/s)" instead of just "Waypoint".
+- **A lost download says why.** When aria2 forgets a download and Waypoint can only report it as lost, the
+  error now includes aria2's own reason (e.g. "GID ... is not found") instead of one generic sentence for
+  every kind of failure.
+
 ## v0.7.5
 - **Check for updates looks like a button.** It was a faint outlined label in the corner that was easy to read
   as plain text. It's now a solid, full-width button at the bottom of the sidebar, and it still turns the accent

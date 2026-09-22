@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { AppSnapshot, ClipboardOffer, Settings, Toast, UpdateState } from '@shared/types'
+import type { AppSnapshot, ClipboardOffer, FocusBatch, Settings, Toast, UpdateState } from '@shared/types'
 
 const api = window.waypoint
 
@@ -28,6 +28,8 @@ export function useWaypoint() {
   const [update, setUpdate] = useState<UpdateState>({ state: 'idle' })
   const [toasts, setToasts] = useState<ToastItem[]>([])
   const [clipboardOffer, setClipboardOffer] = useState<ClipboardOffer | null>(null)
+  // Set from a clicked "batch finished" notification; cleared once Downloads has scrolled to it.
+  const [focusBatch, setFocusBatch] = useState<FocusBatch | null>(null)
 
   const dismissToast = useCallback((id: number) => setToasts((list) => list.filter((t) => t.id !== id)), [])
 
@@ -50,7 +52,8 @@ export function useWaypoint() {
       api.onSettings(setSettingsState),
       api.onUpdate(setUpdate),
       api.onToast(pushToast),
-      api.onClipboardOffer(setClipboardOffer)
+      api.onClipboardOffer(setClipboardOffer),
+      api.onFocusBatch(setFocusBatch)
     ]
     return () => offs.forEach((off) => off())
   }, [pushToast])
@@ -61,8 +64,9 @@ export function useWaypoint() {
   }, [])
 
   const clearClipboardOffer = useCallback(() => setClipboardOffer(null), [])
+  const clearFocusBatch = useCallback(() => setFocusBatch(null), [])
 
-  return { snapshot, settings, saveSettings, update, toasts, pushToast, dismissToast, clipboardOffer, clearClipboardOffer, api }
+  return { snapshot, settings, saveSettings, update, toasts, pushToast, dismissToast, clipboardOffer, clearClipboardOffer, focusBatch, clearFocusBatch, api }
 }
 
 /** Runs an API call and turns a thrown error into a toast. */

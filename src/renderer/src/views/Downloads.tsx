@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { WaypointApi } from '@shared/api'
 import type { AppSnapshot, Batch, LinkItem } from '@shared/types'
 import { Icon } from '../components/Icons'
@@ -30,13 +30,36 @@ interface Props {
   onToast: (text: string) => void
   /** Settings.saveSpeedHistory — lets the speed panel open saved days. */
   savingHistory: boolean
+  /** Set from a clicked "batch finished" notification — that batch opens and scrolls into view once. */
+  focusBatchId: number | null
+  onFocusedBatch: () => void
 }
 
-export function Downloads({ snapshot, api, run, onGoToGrabber, deleteFilesDefault, onRememberDeleteFiles, onToast, savingHistory }: Props) {
+export function Downloads({ snapshot, api, run, onGoToGrabber, deleteFilesDefault, onRememberDeleteFiles, onToast, savingHistory, focusBatchId, onFocusedBatch }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
   const [removing, setRemoving] = useState<Batch | null>(null)
   // Batches start expanded while running and collapsed once done; clicking flips that default.
   const [flipped, setFlipped] = useState<Set<number>>(new Set())
+
+  // A batch brought to the front by a clicked notification: force it open (via the same toggle a click uses),
+  // scroll to it, and give it a brief highlight so it's easy to spot among others.
+  const [highlightId, setHighlightId] = useState<number | null>(null)
+  useEffect(() => {
+    if (focusBatchId === null) return
+    setFlipped((prev) => new Set(prev).add(focusBatchId))
+    setHighlightId(focusBatchId)
+    const el = document.getElementById(`batch-${focusBatchId}`)
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    // Clears focusBatchId upstream, so the timer that fades the highlight lives in its own effect below —
+    // one keyed on focusBatchId would have its cleanup cancel that timer the instant this prop turns back to null.
+    onFocusedBatch()
+  }, [focusBatchId, onFocusedBatch])
+
+  useEffect(() => {
+    if (highlightId === null) return
+    const clear = setTimeout(() => setHighlightId(null), 2200)
+    return () => clearTimeout(clear)
+  }, [highlightId])
 
   const byBatch = useMemo(() => {
     const map = new Map<number, LinkItem[]>()
@@ -132,6 +155,8 @@ export function Downloads({ snapshot, api, run, onGoToGrabber, deleteFilesDefaul
                 })
               }
               onRemove={() => setRemoving(batch)}
+              onRename={(name) => run(api.renameBatch(batch.id, name))}
+              highlighted={batch.id === highlightId}
               api={api}
               run={run}
             />
@@ -164,11 +189,13 @@ interface BatchCardProps {
   open: boolean
   onToggle: () => void
   onRemove: () => void
+  onRename: (name: string) => void
+  highlighted: boolean
   api: WaypointApi
   run: <T>(work: Promise<T>) => Promise<T | undefined>
 }
 
-function BatchCard({ batch, links, filter, open, onToggle, onRemove, api, run }: BatchCardProps) {
+function BatchCard({ batch, links, filter, open, onToggle, onRemove, onRename, highlighted, api, run }: BatchCardProps) {
   const total = links.reduce((s, l) => s + l.totalBytes, 0)
   const done = links.reduce((s, l) => s + (l.dlStatus === 'complete' ? l.totalBytes : l.doneBytes), 0)
   const speed = links.reduce((s, l) => s + l.speed, 0)
@@ -187,14 +214,53 @@ function BatchCard({ batch, links, filter, open, onToggle, onRemove, api, run }:
 
   const stop = (e: React.MouseEvent) => e.stopPropagation()
 
+  const [renaming, setRenaming] = useState(false)
+  const [draft, setDraft] = useState(batch.name)
+  useEffect(() => {
+    if (!renaming) setDraft(batch.name)
+  }, [batch.name, renaming])
+  const commitRename = () => {
+    setRenaming(false)
+    const trimmed = draft.trim()
+    if (trimmed && trimmed !== batch.name) onRename(trimmed)
+    else setDraft(batch.name)
+  }
+
   return (
-    <div className="card batch">
+    <div id={`batch-${batch.id}`} className={`card batch ${highlighted ? 'highlight' : ''}`}>
       <div className={`row dl-grid batch-head ${open ? 'open' : ''}`} onClick={onToggle}>
         <Icon name="chevronRight" size={16} className="chevron" />
         <div className="cell-main">
-          <span className="primary-text batch-name" title={batch.name}>
-            {batch.name}
-          </span>
+          {renaming ? (
+            <input
+              className="input batch-name-input"
+              value={draft}
+              autoFocus
+              onClick={stop}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={commitRename}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitRename()
+                if (e.key === 'Escape') {
+                  setDraft(batch.name)
+                  setRenaming(false)
+                }
+              }}
+            />
+          ) : (
+            <span className="batch-name" title={batch.name}>
+              <span className="primary-text batch-name-text">{batch.name}</span>
+              <IconButton
+                icon="pencil"
+                label="Rename batch"
+                className="batch-rename"
+                onClick={(e) => {
+                  stop(e)
+                  setRenaming(true)
+                }}
+              />
+            </span>
+          )}
           <span className="subtle" title={batch.dir}>
             {completed}/{links.length} files · {batch.dir}
           </span>

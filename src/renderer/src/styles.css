@@ -1495,6 +1495,20 @@ kbd {
   grid-template-columns: 18px minmax(0, 1fr) 160px 130px 72px;
 }
 
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 10px;
+  padding: 0 2px;
+  color: var(--text-3);
+}
+
+.search-row .search-input {
+  flex: 1;
+  max-width: 360px;
+}
+
 /* Downloads */
 
 /* The fixed columns used to add up to more than the card at a 1320px-wide window (a 1650px screen at 125%
@@ -1538,8 +1552,62 @@ kbd {
 }
 
 .batch-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.batch-name-text {
   font-weight: 650;
   font-size: 14px;
+}
+
+.batch-rename {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.batch-head:hover .batch-rename,
+.batch-rename:focus-visible {
+  opacity: 0.6;
+}
+
+.batch-rename:hover {
+  opacity: 1 !important;
+}
+
+.batch-name-input {
+  height: 26px;
+  padding: 2px 8px;
+  font-size: 14px;
+  font-weight: 650;
+  max-width: 100%;
+}
+
+/* A batch brought to the front by a clicked notification, so it's easy to spot among the others. */
+.card.batch.highlight {
+  animation: batch-highlight 2.2s ease-out;
+}
+
+@keyframes batch-highlight {
+  0%,
+  35% {
+    box-shadow: 0 0 0 2px var(--primary);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card.batch.highlight {
+    animation: none;
+    box-shadow: 0 0 0 2px var(--primary);
+  }
 }
 
 .batch-body {

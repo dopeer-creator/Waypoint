@@ -209,6 +209,11 @@ export type UpdateState =
   | { state: 'ready'; version: string }
   | { state: 'error'; message: string }
 
+/** Sent when a finished batch's notification is clicked, so the renderer can bring it into view. */
+export interface FocusBatch {
+  batchId: number
+}
+
 export interface Toast {
   kind: 'info' | 'success' | 'error'
   text: string

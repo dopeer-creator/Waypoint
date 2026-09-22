@@ -9,6 +9,7 @@ import type {
   EnvInfo,
   RemovalPlan,
   RemovalResult,
+  FocusBatch,
   Settings,
   SpeedSeries,
   Toast,
@@ -41,6 +42,8 @@ export interface InvokeApi {
   pickFolder(defaultPath?: string): Promise<string | null>
   diskSpace(path: string): Promise<DiskSpace | null>
   createBatch(input: CreateBatchInput): Promise<Batch>
+  /** Renames a batch. The folder on disk is untouched — only the name shown in Waypoint changes. */
+  renameBatch(id: number, name: string): Promise<Batch>
 
   /** Moves a queued download earlier (delta -1) or later (delta +1) in the queue. */
   moveLink(id: number, delta: number): Promise<void>
@@ -95,6 +98,7 @@ export const invokeMethods = [
   'pickFolder',
   'diskSpace',
   'createBatch',
+  'renameBatch',
   'moveLink',
   'pauseLinks',
   'resumeLinks',
@@ -130,6 +134,8 @@ export interface EventApi {
   onUpdate(cb: (update: UpdateState) => void): () => void
   onToast(cb: (toast: Toast) => void): () => void
   onClipboardOffer(cb: (offer: ClipboardOffer) => void): () => void
+  /** A finished-batch notification was clicked — bring that batch into view. */
+  onFocusBatch(cb: (payload: FocusBatch) => void): () => void
 }
 
 export const eventChannels = {
@@ -137,7 +143,8 @@ export const eventChannels = {
   onSettings: 'wp:settings',
   onUpdate: 'wp:update',
   onToast: 'wp:toast',
-  onClipboardOffer: 'wp:clipboard-offer'
+  onClipboardOffer: 'wp:clipboard-offer',
+  onFocusBatch: 'wp:focus-batch'
 } as const satisfies Record<keyof EventApi, string>
 
 /** Implemented directly in the preload, not over IPC. */

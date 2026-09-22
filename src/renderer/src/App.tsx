@@ -45,12 +45,17 @@ function useResolvedTheme(theme: ThemeId | undefined): Exclude<ThemeId, 'system'
 }
 
 export default function App() {
-  const { snapshot, settings, saveSettings, update, toasts, pushToast, dismissToast, clipboardOffer, clearClipboardOffer, api } = useWaypoint()
+  const { snapshot, settings, saveSettings, update, toasts, pushToast, dismissToast, clipboardOffer, clearClipboardOffer, focusBatch, clearFocusBatch, api } = useWaypoint()
   const [view, setView] = useState<View>('grabber')
   const [intro, setIntro] = useState(true)
   const [batchLinks, setBatchLinks] = useState<LinkItem[] | null>(null)
   /** The resolve-mode guide; `starting` when it's standing between the user and a resolve they just asked for. */
   const [guide, setGuide] = useState<{ starting: boolean } | null>(null)
+
+  // A clicked "batch finished" notification: switch to Downloads and let it scroll to that batch.
+  useEffect(() => {
+    if (focusBatch) setView('downloads')
+  }, [focusBatch])
   const theme = useResolvedTheme(settings?.theme)
   const run = useMemo(() => guard(pushToast), [pushToast])
 
@@ -238,6 +243,8 @@ export default function App() {
               onRememberDeleteFiles={(v) => void saveSettings({ deleteFilesOnRemove: v })}
               savingHistory={settings.saveSpeedHistory}
               onToast={(text) => pushToast({ kind: 'success', text })}
+              focusBatchId={focusBatch?.batchId ?? null}
+              onFocusedBatch={clearFocusBatch}
             />
           )}
           {view === 'themes' && (

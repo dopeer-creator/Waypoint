@@ -28,15 +28,19 @@ export function LinkGrabber({ snapshot, api, run, pushToast, onStartDownloads, s
   const [text, setText] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [selected, setSelected] = useState<Set<number>>(new Set())
+  // A few hundred pasted links leaves nothing to browse by — this is a plain substring filter, not a re-fetch.
+  const [query, setQuery] = useState('')
 
   const links = useMemo(() => snapshot.links.filter((l) => l.batchId === null), [snapshot.links])
   const pending = links.filter(isPending)
   const resolved = links.filter((l) => l.status === 'resolved')
   const failed = links.filter(isFailed)
 
-  const visible = links.filter(
-    (l) => filter === 'all' || (filter === 'pending' ? isPending(l) : filter === 'resolved' ? l.status === 'resolved' : isFailed(l))
-  )
+  const byFilter = (l: LinkItem) =>
+    filter === 'all' || (filter === 'pending' ? isPending(l) : filter === 'resolved' ? l.status === 'resolved' : isFailed(l))
+  const needle = query.trim().toLowerCase()
+  const byQuery = (l: LinkItem) => !needle || [l.filename, l.url, l.host].some((v) => v?.toLowerCase().includes(needle))
+  const visible = links.filter((l) => byFilter(l) && byQuery(l))
   const selectedIds = visible.filter((l) => selected.has(l.id)).map((l) => l.id)
   const allSelected = visible.length > 0 && selectedIds.length === visible.length
 
@@ -196,6 +200,20 @@ export function LinkGrabber({ snapshot, api, run, pushToast, onStartDownloads, s
               </Button>
             )}
           </div>
+
+          {links.length > 8 && (
+            <div className="search-row">
+              <Icon name="search" size={15} />
+              <input
+                className="input search-input"
+                placeholder="Find a link by name, URL or host…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label="Find a link"
+              />
+              {query && <IconButton icon="x" label="Clear search" onClick={() => setQuery('')} />}
+            </div>
+          )}
 
           <div className="card">
             <div className="row head grabber-row">

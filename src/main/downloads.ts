@@ -193,10 +193,13 @@ export class DownloadManager extends EventEmitter {
       return null
     }
     if (status instanceof Aria2Error) {
-      // aria2 forgot the gid (e.g. result purged); treat as lost and let the user retry.
+      // aria2 forgot the gid (e.g. result purged, or aria2 restarted); treat as lost and let the user retry.
+      // aria2's own message ("GID#... is not found", vs. a real disk/permission failure) is worth keeping —
+      // a single canned string here made every kind of failure look identical.
       this.gids.delete(linkId)
       this.speeds.delete(linkId)
-      this.store.updateLink(linkId, { dlStatus: 'error', error: 'Download was lost by aria2 — retry it' })
+      const reason = status.message ? `Download was lost by aria2 (${status.message}) — retry it` : 'Download was lost by aria2 — retry it'
+      this.store.updateLink(linkId, { dlStatus: 'error', error: reason })
       return link.batchId
     }
 
@@ -380,6 +383,18 @@ export class DownloadManager extends EventEmitter {
       bytes += info.size
     }
     return { dir, files, bytes }
+  }
+
+  /**
+   * Renames a batch in the list. The folder on disk keeps its current name — nothing already downloaded, or
+   * still downloading, moves. A rename right after Start-downloads is the common case; renaming the folder to
+   * match is a separate, riskier step (open handles, a name collision) that isn't worth doing silently.
+   */
+  renameBatch(batchId: number, name: string): Batch {
+    const clean = sanitizeSegment(name, this.store.getBatch(batchId)?.name ?? 'Batch')
+    this.store.updateBatch(batchId, { name: clean })
+    this.emit('changed')
+    return this.store.getBatch(batchId)!
   }
 
   /**
