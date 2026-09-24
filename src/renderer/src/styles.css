@@ -1254,9 +1254,13 @@ kbd {
 .resolver-sub {
   color: var(--text-2);
   font-size: 12.5px;
+  line-height: 1.45;
+  /* Two lines, then an ellipsis: one line cut the key sentence off ("...you're only needed if one asks for a check"). */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .resolver .progress {

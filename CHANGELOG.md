@@ -2,6 +2,13 @@
 
 All notable changes to Waypoint. Newest first.
 
+## v0.8.1
+- **The resolver panel no longer cuts its own instructions off.** The automatic-mode text on the Link Grabber
+  ran past one line and ended in "…", hiding the part that says you're only needed if a tab asks for a
+  Cloudflare check. It now wraps to two lines.
+- **A proper README.** Screenshots, a step-by-step guide, a feature list, compatibility and privacy sections —
+  see the [README](https://github.com/dopeer-creator/Waypoint#readme).
+
 ## v0.8.0
 Five small fixes found by reading the app's own code, not requested — all independent, none touching the
 resolver.
