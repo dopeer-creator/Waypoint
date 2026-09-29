@@ -5,7 +5,7 @@ import { Icon } from '../components/Icons'
 import { RemoveBatchDialog } from '../components/RemoveBatchDialog'
 import { SpeedGraph } from '../components/SpeedGraph'
 import { SpeedPanel } from '../components/SpeedPanel'
-import { Button, Chip, IconButton, Progress, type Tone } from '../components/ui'
+import { Button, Chip, IconButton, Progress, ScrollText, type Tone } from '../components/ui'
 import { formatBytes, formatDuration, formatEta, formatSpeed, percent } from '../lib/format'
 import { batchStatus, downloadStatus } from '../lib/status'
 
@@ -319,9 +319,7 @@ function FileRow({ link, api, run }: { link: LinkItem; api: WaypointApi; run: <T
     <div className="row dl-grid file-row">
       <span />
       <div className="cell-main">
-        <span className="primary-text file-name" title={name}>
-          {name}
-        </span>
+        <ScrollText text={name} className="primary-text file-name" title={name} />
         {link.error && !complete && (
           <span className={link.dlStatus === 'expired' ? 'subtle' : 'error-text'} title={link.error}>
             {link.error}

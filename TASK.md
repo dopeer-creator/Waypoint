@@ -8,7 +8,8 @@ Numbers stay put as things ship, so the gaps are expected. Done so far: **1** dr
 (v0.7.1); **11** longer ranges and saved history (v0.7.2); **12** visible update downloads and **13** the
 resolve-mode guide (v0.7.3); a README/in-app-copy pass and a bolder update button (v0.7.4–0.7.5); **15**'s
 five self-found fixes — notification click, Link Grabber search, batch rename, tray tooltip, a real aria2
-error message (v0.8.0).
+error message (v0.8.0); the resolver-panel truncation fix (v0.8.1); a higher default connections-per-file and
+hover-to-reveal file names in an expanded batch (v0.8.2).
 
 ---
 

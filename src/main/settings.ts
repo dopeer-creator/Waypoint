@@ -9,7 +9,7 @@ export function defaultSettings(): Settings {
     baseFolder: app.getPath('downloads'),
     extractDefault: true,
     maxConcurrent: 4,
-    connectionsPerFile: 8,
+    connectionsPerFile: 16,
     speedLimitKib: 0,
     resolveMode: 'automated',
     handoffBrowser: 'brave',

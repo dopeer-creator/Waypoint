@@ -1,4 +1,4 @@
-import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from 'react'
 import { Icon, type IconName } from './Icons'
 
 export type Tone = 'neutral' | 'primary' | 'success' | 'warning' | 'error' | 'accent' | 'secondary'
@@ -41,6 +41,39 @@ export function Progress({ value = 0, tone = 'primary', indeterminate }: { value
     <div className={`progress ${tone} ${indeterminate ? 'indeterminate' : ''}`} role="progressbar" aria-valuenow={Math.round(value)}>
       <span style={indeterminate ? undefined : { width: `${value}%` }} />
     </div>
+  )
+}
+
+/** A truncated line that slides to reveal the rest of the text on hover, instead of relying on a title tooltip. */
+export function ScrollText({ text, className = '', title }: { text: string; className?: string; title?: string }) {
+  const outerRef = useRef<HTMLSpanElement>(null)
+  const innerRef = useRef<HTMLSpanElement>(null)
+  const [dist, setDist] = useState(0)
+
+  function handleEnter(): void {
+    const outer = outerRef.current
+    const inner = innerRef.current
+    if (!outer || !inner) return
+    setDist(Math.max(0, inner.scrollWidth - outer.clientWidth))
+  }
+
+  return (
+    <span
+      ref={outerRef}
+      className={className}
+      title={title}
+      style={dist > 0 ? { display: 'block', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'clip' } : { display: 'block', overflow: 'hidden', whiteSpace: 'nowrap' }}
+      onMouseEnter={handleEnter}
+      onMouseLeave={() => setDist(0)}
+    >
+      <span
+        ref={innerRef}
+        className={dist > 0 ? 'scroll-text-inner marquee' : 'scroll-text-inner'}
+        style={dist > 0 ? ({ '--marquee-dist': `-${dist}px`, '--marquee-duration': `${Math.max(2.4, dist / 30)}s` } as CSSProperties) : undefined}
+      >
+        {text}
+      </span>
+    </span>
   )
 }
 

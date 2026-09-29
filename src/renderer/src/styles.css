@@ -1632,6 +1632,28 @@ kbd {
   font-weight: 500;
 }
 
+.scroll-text-inner {
+  display: inline-block;
+}
+
+.scroll-text-inner.marquee {
+  animation: marquee-slide var(--marquee-duration, 4s) ease-in-out infinite;
+}
+
+@keyframes marquee-slide {
+  0%,
+  12% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(var(--marquee-dist, 0px));
+  }
+  88%,
+  100% {
+    transform: translateX(0);
+  }
+}
+
 .notice {
   margin: 12px 16px;
   padding: 10px 12px;

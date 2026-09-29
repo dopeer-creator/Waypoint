@@ -2,6 +2,13 @@
 
 All notable changes to Waypoint. Newest first.
 
+## v0.8.2
+- **Faster downloads by default.** Connections per file goes from 8 to 16 out of the box — more parallel
+  connections to the same file, on hosts that allow it. Still adjustable in Settings.
+- **File names in an expanded batch now reveal themselves on hover.** When several files share a long common
+  prefix, every row used to cut off at the same spot, making them impossible to tell apart at a glance. Hovering
+  one now slides it left to show the rest, then slides back.
+
 ## v0.8.1
 - **The resolver panel no longer cuts its own instructions off.** The automatic-mode text on the Link Grabber
   ran past one line and ended in "…", hiding the part that says you're only needed if a tab asks for a
