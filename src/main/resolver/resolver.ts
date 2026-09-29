@@ -13,12 +13,23 @@ import { browserProfileDir } from '../paths'
 import type { SettingsService } from '../settings'
 import type { HostAdapter } from './adapter'
 import { adapterFor } from './adapters'
+import { pageFullyLoaded, pageIsWaiting } from './generic'
 
 const SELF_SOLVE_GRACE_MS = 6000
 const POLL_MS = 700
 const MAX_AUTO_CLICKS = 6
 const CLICK_COOLDOWN_MS = 4000
 const AUTO_CLICK_PROGRESS_DELAY_MS = 8000
+/**
+ * The first click waits for the page to finish loading, up to this long. A click that lands before the host's
+ * script has wired up its button does nothing — seen with six tabs loading at once — and a wasted click can
+ * leave a two-click host (ad, then file) with its button "spent" one click short.
+ */
+const FIRST_CLICK_LOAD_WAIT_MS = 3000
+/** After clicking, this long with nothing left to click and no download means the page is stuck. */
+const STALL_MS = 10_000
+/** Reloads per link to get past a stuck page before asking the user to click it themselves. */
+const MAX_STALL_RELOADS = 2
 /** Browser automation workers; deliberately separate from aria2's download concurrency. */
 const AUTO_RESOLVE_CONCURRENCY = 6
 /** How long a link may sit waiting on the user — its turn to ask, then the check itself — before giving up. */
@@ -714,6 +725,7 @@ export class Resolver extends EventEmitter {
     let lastState: string | null = null
     let loggedNoButton = false
     let verifiedAt = 0
+    let reloads = 0
 
     while (!done() && !signal.aborted) {
       await sleep(POLL_MS)
@@ -775,8 +787,10 @@ export class Resolver extends EventEmitter {
 
       const cooledDown = Date.now() - lastClick > CLICK_COOLDOWN_MS
       const autoClick = this.settings.get().autoClickDownload
+      const loadWaitOver = clicks > 0 || Date.now() - verifiedAt > FIRST_CLICK_LOAD_WAIT_MS || (await pageFullyLoaded(page))
+      let foundNothing = false
 
-      if (autoClick && clicks < MAX_AUTO_CLICKS && cooledDown) {
+      if (autoClick && clicks < MAX_AUTO_CLICKS && cooledDown && loadWaitOver) {
         if (Date.now() - verifiedAt > AUTO_CLICK_PROGRESS_DELAY_MS) {
           this.setState({
             phase: 'capturing',
@@ -792,30 +806,66 @@ export class Resolver extends EventEmitter {
           log.info(`[resolver] link ${linkId}: auto-click ${clicks}/${MAX_AUTO_CLICKS} landed on ${clicked}`)
           continue
         }
+        foundNothing = true
         if (clicks === 0 && Date.now() - verifiedAt > AUTO_CLICK_PROGRESS_DELAY_MS && !loggedNoButton) {
           loggedNoButton = true
           log.warn(`[resolver] link ${linkId}: no download button found on ${hostOf(page.url())}`)
         }
       }
 
-      // Ask for a manual click once auto-click has had a real chance and failed: either it's off, or it's on
-      // but has burned through MAX_AUTO_CLICKS attempts without landing a download. Without this fallback the
-      // page just sits there silently until the whole per-link timeout fails it -- indistinguishable from a
-      // hang, and the reason "still have to click manually" looked like automatic mode wasn't doing anything.
-      const autoClickExhausted = autoClick && clicks >= MAX_AUTO_CLICKS
-      if ((!autoClick || autoClickExhausted) && cooledDown && Date.now() - verifiedAt > AUTO_CLICK_PROGRESS_DELAY_MS && !askedToClick) {
+      // Stuck: clicks landed, then STALL_MS with nothing left to click (or no clicks left) and no download, and
+      // the page isn't counting down. Without this the tab sat silently until the whole per-link timeout.
+      const stuck =
+        autoClick &&
+        !askedToClick &&
+        clicks > 0 &&
+        Date.now() - lastClick > STALL_MS &&
+        (foundNothing || clicks >= MAX_AUTO_CLICKS) &&
+        !(await this.hostIsWaiting(page))
+
+      // A fresh load usually gets past it: the button is wired up this time and its click count starts over.
+      if (stuck && reloads < MAX_STALL_RELOADS) {
+        reloads++
+        log.info(
+          `[resolver] link ${linkId}: stuck ${Math.round((Date.now() - lastClick) / 1000)}s after click ${clicks} with nothing left to click — reloading the page (${reloads}/${MAX_STALL_RELOADS})`
+        )
+        this.setWorkerPhase(linkId, 'loading')
+        await page.reload({ waitUntil: 'domcontentloaded', timeout: 60_000 }).catch(() => undefined)
+        clicks = 0
+        lastClick = 0
+        verifiedAt = 0
+        lastState = null
+        loggedNoButton = false
+        continue
+      }
+
+      // Ask for a manual click once auto-click has had a real chance and failed: either it's off, or it's on but
+      // the page stayed stuck through its reloads. Without this fallback the page just sits there silently until
+      // the whole per-link timeout fails it — indistinguishable from a hang.
+      if ((!autoClick || stuck) && cooledDown && Date.now() - verifiedAt > AUTO_CLICK_PROGRESS_DELAY_MS && !askedToClick) {
         askedToClick = true
+        log.info(`[resolver] link ${linkId}: asking for a manual click`)
         await page.bringToFront().catch(() => undefined)
         this.setWorkerPhase(linkId, 'waiting-user')
         this.setState({
           phase: 'waiting-user',
           currentLinkId: linkId,
-          message: autoClickExhausted
-            ? "Couldn't find the download button automatically — click it in the browser window"
+          message: autoClick
+            ? "Couldn't get the download to start automatically — click the download button in the browser window"
             : 'Click the download button in the browser window'
         })
       }
     }
+  }
+
+  /** The link's page, or a popup it opened (a host's own delivery tab), says it's getting the file ready. */
+  private async hostIsWaiting(page: Page): Promise<boolean> {
+    for (const other of page.context().pages()) {
+      if (other.isClosed()) continue
+      const mine = other === page || (await other.opener().catch(() => null)) === page
+      if (mine && (await pageIsWaiting(other))) return true
+    }
+    return false
   }
 
   /**

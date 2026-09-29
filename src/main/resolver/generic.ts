@@ -108,8 +108,24 @@ const MARK_CLICKED_SCRIPT = `(() => {
   if (el) el.dataset.waypointClicks = String(Number(el.dataset.waypointClicks || 0) + 1);
 })()`
 
+// A page that says it's getting the file ready (a countdown, "please wait", "generating") is waiting, not
+// stalled — reloading it would only restart the wait. Same words the picker uses to hold off a click.
+const WAITING_SCRIPT = `(() => {
+  const text = (document.body && document.body.innerText || '').toLowerCase();
+  return /ready in|preparing|please wait|generating|processing/.test(text);
+})()`
+
 export async function detectVerification(page: Page): Promise<VerificationState> {
   return (await page.evaluate(VERIFICATION_SCRIPT)) as VerificationState
+}
+
+export async function pageIsWaiting(page: Page): Promise<boolean> {
+  return Boolean(await page.evaluate(WAITING_SCRIPT).catch(() => false))
+}
+
+/** Whether the page and everything it loads (scripts included) has finished — its buttons are wired up by then. */
+export async function pageFullyLoaded(page: Page): Promise<boolean> {
+  return (await page.evaluate('document.readyState').catch(() => '')) === 'complete'
 }
 
 /** Returns a description of what it clicked (for the log), or null if there was nothing to click. */

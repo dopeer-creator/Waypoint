@@ -213,6 +213,9 @@ Use this mode when a host won't cooperate with the automatic window, or when you
 
 - **A link keeps failing in Automatic mode.** Some hosts don't cooperate with an automated window. Switch to
   **In your browser** mode and click Download yourself.
+- **A tab reloads itself.** That's on purpose: if a page stops responding to clicks for 10 seconds, Waypoint
+  reloads it and tries again (twice at most). If it still won't start, Waypoint brings the tab to the front and
+  asks you to click Download there.
 - **"Needs you" won't go away.** The tab waiting for you is in the Chrome window Waypoint opened — complete the
   check there. If nothing is shown, **Skip** moves on.
 - **In your browser mode does nothing.** The extension probably isn't connected: **Settings → Link resolving**

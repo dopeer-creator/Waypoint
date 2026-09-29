@@ -2,6 +2,20 @@
 
 All notable changes to Waypoint. Newest first.
 
+## v0.9.0
+Automatic mode no longer leaves tabs stuck.
+
+- **A stuck tab gets itself unstuck.** With several tabs loading at once, a first click could land before the
+  host's page had wired up its button and do nothing. On a two-click host like fuckingfast (first click opens an
+  ad, second starts the download) that left the button "used up" one click short, and the tab sat there silently
+  until the 5-minute timeout — about 1 link in 8, going by real logs. Now a tab that has clicked but has nothing
+  left to click for 10 seconds, with no download started, reloads the page and tries again (twice at most), then
+  asks you to click it yourself instead of waiting in silence.
+- **The first click waits for the page to finish loading** (up to 3 seconds), so it isn't wasted in the first
+  place.
+- **Countdowns are left alone.** A page saying "please wait", "preparing" or "ready in…" is waiting, not stuck,
+  and isn't reloaded.
+
 ## v0.8.7
 A round of small fixes to the Downloads page.
 
