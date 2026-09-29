@@ -192,7 +192,7 @@ export default function App() {
             <div className="stat">
               <Icon name="activity" size={20} />
               <div>
-                <div className="stat-value">{formatSpeed(snapshot.stats.speed)}</div>
+                <div className="stat-value">{snapshot.stats.speed > 0 ? formatSpeed(snapshot.stats.speed) : 'Idle'}</div>
                 <div className="stat-label">Speed</div>
               </div>
             </div>

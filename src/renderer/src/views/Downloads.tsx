@@ -3,20 +3,70 @@ import type { WaypointApi } from '@shared/api'
 import type { AppSnapshot, Batch, LinkItem } from '@shared/types'
 import { Icon } from '../components/Icons'
 import { RemoveBatchDialog } from '../components/RemoveBatchDialog'
-import { SpeedGraph } from '../components/SpeedGraph'
 import { SpeedPanel } from '../components/SpeedPanel'
 import { Button, Chip, IconButton, Progress, ScrollText, type Tone } from '../components/ui'
-import { formatBytes, formatDuration, formatEta, formatSpeed, percent } from '../lib/format'
+import { formatBytes, formatDuration, formatEta, formatSpeed, percent, plural } from '../lib/format'
 import { batchStatus, downloadStatus } from '../lib/status'
 
-type Filter = 'all' | 'active' | 'queued' | 'completed' | 'failed'
+type Filter = 'all' | 'active' | 'queued' | 'paused' | 'completed' | 'failed'
 
 const FILTERS: Record<Filter, (l: LinkItem) => boolean> = {
   all: () => true,
   active: (l) => l.dlStatus === 'active',
-  queued: (l) => l.dlStatus === 'queued' || l.dlStatus === 'paused' || l.dlStatus === 'expired',
+  queued: (l) => l.dlStatus === 'queued' || l.dlStatus === 'expired',
+  paused: (l) => l.dlStatus === 'paused',
   completed: (l) => l.dlStatus === 'complete',
   failed: (l) => l.dlStatus === 'error'
+}
+
+type SortKey = 'name' | 'progress' | 'size' | 'speed' | 'eta' | 'status'
+interface Sort {
+  key: SortKey
+  dir: 1 | -1
+}
+
+const STATUS_ORDER: Record<string, number> = { active: 0, expired: 1, queued: 2, paused: 3, error: 4, complete: 5, none: 6 }
+
+function fileName(link: LinkItem): string {
+  return link.filename ?? link.path?.split(/[\\/]/).pop() ?? link.url
+}
+
+function linkPercent(link: LinkItem): number {
+  return link.dlStatus === 'complete' ? 100 : percent(link.doneBytes, link.totalBytes)
+}
+
+// Files with no ETA (not downloading) sort after every file that has one, in either direction.
+function linkEta(link: LinkItem): number {
+  return link.dlStatus === 'active' && link.speed > 0 ? (link.totalBytes - link.doneBytes) / link.speed : Infinity
+}
+
+const SORTERS: Record<SortKey, (a: LinkItem, b: LinkItem) => number> = {
+  name: (a, b) => fileName(a).localeCompare(fileName(b), undefined, { numeric: true, sensitivity: 'base' }),
+  progress: (a, b) => linkPercent(a) - linkPercent(b),
+  size: (a, b) => a.totalBytes - b.totalBytes,
+  speed: (a, b) => a.speed - b.speed,
+  eta: (a, b) => linkEta(a) - linkEta(b),
+  status: (a, b) => (STATUS_ORDER[a.dlStatus] ?? 9) - (STATUS_ORDER[b.dlStatus] ?? 9)
+}
+
+function sortLinks(links: LinkItem[], sort: Sort | null): LinkItem[] {
+  if (!sort) return links
+  const cmp = SORTERS[sort.key]
+  return [...links].sort((a, b) => {
+    if (sort.key === 'eta') {
+      const ea = linkEta(a)
+      const eb = linkEta(b)
+      if (ea === Infinity || eb === Infinity) return ea === eb ? 0 : ea === Infinity ? 1 : -1
+    }
+    return cmp(a, b) * sort.dir
+  })
+}
+
+/** "C:\Users\Admin\Downloads\Batch" → head "C:\Users\Admin\Downloads\" (shrinks first) + tail "Batch" (kept). */
+function splitPath(path: string): [head: string, tail: string] {
+  const trimmed = path.replace(/[\\/]+$/, '')
+  const cut = Math.max(trimmed.lastIndexOf('\\'), trimmed.lastIndexOf('/'))
+  return cut < 0 ? ['', trimmed] : [trimmed.slice(0, cut + 1), trimmed.slice(cut + 1)]
 }
 
 interface Props {
@@ -37,7 +87,16 @@ interface Props {
 
 export function Downloads({ snapshot, api, run, onGoToGrabber, deleteFilesDefault, onRememberDeleteFiles, onToast, savingHistory, focusBatchId, onFocusedBatch }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
+  const [sort, setSort] = useState<Sort | null>(null)
   const [removing, setRemoving] = useState<Batch | null>(null)
+
+  // Each header cycles: its natural direction → reversed → back to queue order.
+  const cycleSort = (key: SortKey) =>
+    setSort((prev) => {
+      const first: 1 | -1 = key === 'progress' || key === 'size' || key === 'speed' ? -1 : 1
+      if (prev?.key !== key) return { key, dir: first }
+      return prev.dir === first ? { key, dir: -first as 1 | -1 } : null
+    })
   // Batches start expanded while running and collapsed once done; clicking flips that default.
   const [flipped, setFlipped] = useState<Set<number>>(new Set())
 
@@ -103,6 +162,7 @@ export function Downloads({ snapshot, api, run, onGoToGrabber, deleteFilesDefaul
               ['all', 'All'],
               ['active', 'Downloading'],
               ['queued', 'Queued'],
+              ['paused', 'Paused'],
               ['completed', 'Completed'],
               ['failed', 'Failed']
             ] as const
@@ -114,7 +174,6 @@ export function Downloads({ snapshot, api, run, onGoToGrabber, deleteFilesDefaul
           ))}
         </div>
         <span className="spacer" />
-        <SpeedGraph speed={snapshot.stats.speed} />
         <Button size="sm" icon="pause" onClick={() => run(api.pauseAll())} disabled={!hasRunning}>
           Pause all
         </Button>
@@ -123,15 +182,33 @@ export function Downloads({ snapshot, api, run, onGoToGrabber, deleteFilesDefaul
         </Button>
       </div>
 
-      <div className="row head dl-grid dl-head" aria-hidden>
+      <div className="row head dl-grid dl-head">
         <span />
-        <span>File</span>
-        <span>Progress</span>
-        <span>Downloaded</span>
-        <span>%</span>
-        <span>Speed</span>
-        <span>ETA</span>
-        <span>Status</span>
+        {(
+          [
+            ['name', 'File'],
+            ['progress', 'Progress'],
+            ['size', 'Downloaded'],
+            [null, '%'],
+            ['speed', 'Speed'],
+            ['eta', 'ETA'],
+            ['status', 'Status']
+          ] as const
+        ).map(([key, label]) =>
+          key ? (
+            <button
+              key={label}
+              className={`sort-head ${sort?.key === key ? 'sorted' : ''}`}
+              title={key === 'size' ? 'Sort files in each batch by size' : `Sort files in each batch by ${label.toLowerCase()}`}
+              onClick={() => cycleSort(key)}
+            >
+              {label}
+              {sort?.key === key && <Icon name={sort.dir === 1 ? 'chevronUp' : 'chevronDown'} size={12} />}
+            </button>
+          ) : (
+            <span key={label}>{label}</span>
+          )
+        )}
         <span />
       </div>
 
@@ -145,6 +222,7 @@ export function Downloads({ snapshot, api, run, onGoToGrabber, deleteFilesDefaul
               batch={batch}
               links={byBatch.get(batch.id) ?? []}
               filter={FILTERS[filter]}
+              sort={sort}
               open={open}
               onToggle={() =>
                 setFlipped((prev) => {
@@ -186,6 +264,7 @@ interface BatchCardProps {
   batch: Batch
   links: LinkItem[]
   filter: (l: LinkItem) => boolean
+  sort: Sort | null
   open: boolean
   onToggle: () => void
   onRemove: () => void
@@ -195,7 +274,7 @@ interface BatchCardProps {
   run: <T>(work: Promise<T>) => Promise<T | undefined>
 }
 
-function BatchCard({ batch, links, filter, open, onToggle, onRemove, onRename, highlighted, api, run }: BatchCardProps) {
+function BatchCard({ batch, links, filter, sort, open, onToggle, onRemove, onRename, highlighted, api, run }: BatchCardProps) {
   const total = links.reduce((s, l) => s + l.totalBytes, 0)
   const done = links.reduce((s, l) => s + (l.dlStatus === 'complete' ? l.totalBytes : l.doneBytes), 0)
   const speed = links.reduce((s, l) => s + l.speed, 0)
@@ -211,6 +290,8 @@ function BatchCard({ batch, links, filter, open, onToggle, onRemove, onRename, h
   const [label, tone] = batchStatus(batch)
   const barTone: Tone = batch.status === 'done' ? 'success' : batch.status === 'error' ? 'error' : batch.status === 'paused' ? 'warning' : batch.status === 'extracting' ? 'accent' : 'primary'
   const allComplete = links.length > 0 && completed === links.length
+  const [dirHead, dirTail] = splitPath(batch.dir)
+  const finishedIn = batch.status === 'done' && batch.finishedAt ? formatDuration((batch.finishedAt - batch.createdAt) / 1000) : null
 
   const stop = (e: React.MouseEvent) => e.stopPropagation()
 
@@ -248,8 +329,8 @@ function BatchCard({ batch, links, filter, open, onToggle, onRemove, onRename, h
               }}
             />
           ) : (
-            <span className="batch-name" title={batch.name}>
-              <span className="primary-text batch-name-text">{batch.name}</span>
+            <span className="batch-name">
+              <ScrollText text={batch.name} className="primary-text batch-name-text" title={batch.name} />
               <IconButton
                 icon="pencil"
                 label="Rename batch"
@@ -261,8 +342,14 @@ function BatchCard({ batch, links, filter, open, onToggle, onRemove, onRename, h
               />
             </span>
           )}
-          <span className="subtle" title={batch.dir}>
-            {completed}/{links.length} files · {batch.dir}
+          <span className="subtle batch-sub" title={batch.dir}>
+            <span className="batch-summary" title={finishedIn ? 'From adding the batch to finishing, pauses included' : undefined}>
+              {finishedIn ? `${plural(links.length, 'file')} · ${formatBytes(total)} in ${finishedIn}` : `${completed}/${links.length} files`} ·&nbsp;
+            </span>
+            <span className="path">
+              <span className="path-head">{dirHead}</span>
+              <span className="path-tail">{dirTail}</span>
+            </span>
           </span>
         </div>
         <Progress value={pct} tone={barTone} indeterminate={batch.status === 'extracting'} />
@@ -295,8 +382,8 @@ function BatchCard({ batch, links, filter, open, onToggle, onRemove, onRename, h
               <span>{batch.extractError}</span>
             </div>
           )}
-          {links.filter(filter).map((link) => (
-            <FileRow key={link.id} link={link} api={api} run={run} />
+          {sortLinks(links.filter(filter), sort).map((link) => (
+            <FileRow key={link.id} link={link} sorted={sort !== null} api={api} run={run} />
           ))}
         </div>
       )}
@@ -304,7 +391,7 @@ function BatchCard({ batch, links, filter, open, onToggle, onRemove, onRename, h
   )
 }
 
-function FileRow({ link, api, run }: { link: LinkItem; api: WaypointApi; run: <T>(work: Promise<T>) => Promise<T | undefined> }) {
+function FileRow({ link, sorted, api, run }: { link: LinkItem; sorted: boolean; api: WaypointApi; run: <T>(work: Promise<T>) => Promise<T | undefined> }) {
   // Fall back rather than destructure undefined: an unrecognised status would otherwise throw during render and
   // take the whole app down to a blank window, which is a wildly disproportionate result for one odd row.
   const [label, tone] = downloadStatus[link.dlStatus] ?? downloadStatus.none
@@ -312,16 +399,29 @@ function FileRow({ link, api, run }: { link: LinkItem; api: WaypointApi; run: <T
   const active = link.dlStatus === 'active'
   const done = complete ? link.totalBytes : link.doneBytes
   const pct = complete ? 100 : percent(done, link.totalBytes)
-  const name = link.filename ?? link.path?.split(/[\\/]/).pop() ?? link.url
+  const name = fileName(link)
   const barTone: Tone = complete ? 'success' : link.dlStatus === 'error' ? 'error' : link.dlStatus === 'paused' ? 'warning' : link.dlStatus === 'queued' ? 'neutral' : 'primary'
+  const openable = complete && link.path
 
   return (
-    <div className="row dl-grid file-row">
+    <div
+      className={`row dl-grid file-row ${openable ? 'openable' : ''}`}
+      title={openable ? 'Double-click to open · right-click for more' : undefined}
+      onDoubleClick={openable ? () => run(api.openPath(link.path!)) : undefined}
+      onContextMenu={
+        openable
+          ? (e) => {
+              e.preventDefault()
+              run(api.fileMenu(link.path!))
+            }
+          : undefined
+      }
+    >
       <span />
       <div className="cell-main">
         <ScrollText text={name} className="primary-text file-name" title={name} />
         {link.error && !complete && (
-          <span className={link.dlStatus === 'expired' ? 'subtle' : 'error-text'} title={link.error}>
+          <span className={`row-error ${link.dlStatus === 'expired' ? 'subtle' : 'error-text'}`} title={link.error}>
             {link.error}
           </span>
         )}
@@ -336,8 +436,9 @@ function FileRow({ link, api, run }: { link: LinkItem; api: WaypointApi; run: <T
       <Chip tone={tone} pulse={active || link.dlStatus === 'expired'}>
         {label}
       </Chip>
-      <div className="actions">
-        {(link.dlStatus === 'queued' || link.dlStatus === 'paused') && (
+      <div className="actions" onDoubleClick={(e) => e.stopPropagation()}>
+        {/* Queue order means nothing while the list is sorted by something else. */}
+        {!sorted && (link.dlStatus === 'queued' || link.dlStatus === 'paused') && (
           <>
             <IconButton icon="chevronUp" label="Move up in queue" onClick={() => run(api.moveLink(link.id, -1))} />
             <IconButton icon="chevronDown" label="Move down in queue" onClick={() => run(api.moveLink(link.id, 1))} />

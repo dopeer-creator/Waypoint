@@ -9,7 +9,9 @@ Numbers stay put as things ship, so the gaps are expected. Done so far: **1** dr
 resolve-mode guide (v0.7.3); a README/in-app-copy pass and a bolder update button (v0.7.4–0.7.5); **15**'s
 five self-found fixes — notification click, Link Grabber search, batch rename, tray tooltip, a real aria2
 error message (v0.8.0); the resolver-panel truncation fix (v0.8.1); a higher default connections-per-file and
-hover-to-reveal file names in an expanded batch (v0.8.2).
+hover-to-reveal file names in an expanded batch (v0.8.2); a Downloads-page polish round — wider File column,
+folder-name-first paths, two-line errors, a Paused tab, column sorting, open/reveal on double/right-click,
+finished-batch summaries (v0.8.7).
 
 ---
 

@@ -1308,34 +1308,6 @@ kbd {
   color: var(--error);
 }
 
-.speed-graph {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 6px;
-}
-
-.speed-graph svg {
-  border-radius: 6px;
-}
-
-.speed-graph-label {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
-}
-
-.speed-graph-now {
-  font-size: 12.5px;
-  font-weight: 650;
-  font-variant-numeric: tabular-nums;
-}
-
-.speed-graph-peak {
-  font-size: 11px;
-  color: var(--text-3);
-}
-
 .toolbar .spacer {
   flex: 1;
 }
@@ -1521,7 +1493,7 @@ kbd {
 .dl-grid {
   gap: 10px;
   grid-template-columns:
-    22px minmax(180px, 1.5fr) minmax(90px, 1fr) minmax(96px, 128px) 48px
+    22px minmax(180px, 3fr) minmax(90px, 1fr) minmax(96px, 128px) 48px
     minmax(68px, 84px) minmax(58px, 72px) minmax(108px, 142px) 108px;
 }
 
@@ -1565,6 +1537,42 @@ kbd {
 .batch-name-text {
   font-weight: 650;
   font-size: 14px;
+  min-width: 0;
+}
+
+/* "9/9 files · C:\Users\…\Batch": the path's start gives way first so the folder's own name stays visible. */
+.batch-sub {
+  display: flex;
+  min-width: 0;
+}
+
+.batch-summary {
+  flex: none;
+  white-space: nowrap;
+}
+
+.path {
+  display: flex;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.path-head {
+  flex: 0 1 auto;
+  min-width: 1.5em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Never shrinks (even a fraction of a pixel would show "…"); capped instead, so only a folder name wider than
+   the whole space is ever cut. */
+.path-tail {
+  flex: none;
+  max-width: calc(100% - 1.5em);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .batch-rename {
@@ -1630,6 +1638,42 @@ kbd {
 .file-name {
   font-size: 12.5px;
   font-weight: 500;
+}
+
+/* A failed file's reason is the thing you came to read — give it two lines before cutting it off. */
+.row-error {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.sort-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  justify-self: start;
+}
+
+.sort-head:hover,
+.sort-head.sorted {
+  color: var(--text);
+}
+
+.sort-head:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 3px;
 }
 
 .scroll-text-inner {

@@ -67,6 +67,8 @@ export interface InvokeApi {
 
   openPath(path: string): Promise<void>
   showInFolder(path: string): Promise<void>
+  /** Right-click menu for a downloaded file: open it, or show it in its folder. */
+  fileMenu(path: string): Promise<void>
   openLogs(): Promise<void>
   resetBrowserProfile(): Promise<void>
   openExtensionFolder(): Promise<void>
@@ -115,6 +117,7 @@ export const invokeMethods = [
   'resumeAll',
   'openPath',
   'showInFolder',
+  'fileMenu',
   'openLogs',
   'resetBrowserProfile',
   'openExtensionFolder',

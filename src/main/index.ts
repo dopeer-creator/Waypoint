@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { cp, mkdir, readFile, stat, statfs } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import {
@@ -85,6 +86,19 @@ function toast(kind: Toast['kind'], text: string): void {
   send('wp:toast', { kind, text } satisfies Toast)
 }
 
+// Archives can be deleted after extracting, and folders moved by hand — say so rather than fail silently.
+async function openItem(path: string): Promise<void> {
+  if (!existsSync(path)) return toast('error', `Couldn't find ${basename(path)} — it may have been moved or deleted`)
+  const error = await shell.openPath(path)
+  if (error) toast('error', error)
+}
+
+function revealItem(path: string): void {
+  if (existsSync(path)) shell.showItemInFolder(path)
+  else if (existsSync(dirname(path))) void shell.openPath(dirname(path))
+  else toast('error', `Couldn't find ${basename(path)} — it may have been moved or deleted`)
+}
+
 function snapshot(): AppSnapshot {
   const links = store.listLinks().map(({ headers: _headers, ...link }) => ({ ...link, speed: downloads.speedOf(link.id) }))
   const inBatch = links.filter((l) => l.batchId !== null)
@@ -97,7 +111,8 @@ function snapshot(): AppSnapshot {
     stats: {
       speed: inBatch.reduce((sum, l) => sum + l.speed, 0),
       active: inBatch.filter((l) => l.dlStatus === 'active').length,
-      queued: inBatch.filter((l) => l.dlStatus === 'queued').length,
+      // Same rule as the Downloads "Queued" tab: waiting to start, or waiting on a refreshed link. Paused is its own tab.
+      queued: inBatch.filter((l) => l.dlStatus === 'queued' || l.dlStatus === 'expired').length,
       total: inBatch.length
     }
   }
@@ -472,11 +487,14 @@ function registerIpc(): void {
     pauseAll: async () => downloads.pauseAll().then(pushSnapshot),
     resumeAll: async () => downloads.resumeAll().then(pushSnapshot),
 
-    openPath: async (path) => {
-      const error = await shell.openPath(path)
-      if (error) toast('error', error)
+    openPath: async (path) => openItem(path),
+    showInFolder: async (path) => revealItem(path),
+    fileMenu: async (path) => {
+      Menu.buildFromTemplate([
+        { label: 'Open', click: () => void openItem(path) },
+        { label: 'Show in folder', click: () => revealItem(path) }
+      ]).popup(win ? { window: win } : undefined)
     },
-    showInFolder: async (path) => shell.showItemInFolder(path),
     openLogs: async () => {
       await shell.openPath(dirname(log.transports.file.getFile().path))
     },

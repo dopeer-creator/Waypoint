@@ -330,7 +330,7 @@ export class DownloadManager extends EventEmitter {
 
   async resumeBatch(batchId: number): Promise<void> {
     const links = this.store.linksInBatch(batchId).filter((l) => l.dlStatus !== 'complete')
-    this.store.updateBatch(batchId, { status: 'downloading' })
+    this.store.updateBatch(batchId, { status: 'downloading', finishedAt: null })
     await this.resumeLinks(links.map((l) => l.id))
   }
 
@@ -444,7 +444,7 @@ export class DownloadManager extends EventEmitter {
     for (const id of batchIds) {
       const batch = this.store.getBatch(id)
       if (batch && (batch.status === 'error' || batch.status === 'done')) {
-        this.store.updateBatch(id, { status: 'downloading', extractStatus: batch.extract ? 'waiting' : 'off', extractError: null })
+        this.store.updateBatch(id, { status: 'downloading', extractStatus: batch.extract ? 'waiting' : 'off', extractError: null, finishedAt: null })
       }
     }
   }
@@ -511,7 +511,7 @@ export class DownloadManager extends EventEmitter {
 
   private finishBatch(batchId: number, failedDownloads: number, failedExtractions = 0): void {
     const ok = failedDownloads === 0 && failedExtractions === 0
-    this.store.updateBatch(batchId, { status: ok ? 'done' : 'error' })
+    this.store.updateBatch(batchId, { status: ok ? 'done' : 'error', finishedAt: Date.now() })
     const batch = this.store.getBatch(batchId)
     this.emit('changed')
     if (batch) this.emit('batch-done', batch)

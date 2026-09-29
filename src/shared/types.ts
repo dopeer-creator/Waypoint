@@ -58,6 +58,8 @@ export interface Batch {
   extractStatus: ExtractStatus
   extractError: string | null
   createdAt: number
+  /** When the batch last settled (done or error); null while it's still going. */
+  finishedAt: number | null
 }
 
 export type ResolverPhase = 'idle' | 'launching' | 'loading' | 'verifying' | 'waiting-user' | 'capturing'

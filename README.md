@@ -127,6 +127,11 @@ The **Downloads** page lists each batch with its files underneath, and the speed
 - **Pause / resume** a single file, a whole batch, or everything (**Pause all** / **Resume all**).
 - **Move** queued files up or down to change what downloads next. **Rename** a batch with the pencil next to
   its name (the folder on disk keeps its name).
+- **Sort** the files in each batch by clicking a column header (File, Progress, Downloaded, Speed, ETA, Status);
+  click again to reverse, a third time to go back to queue order.
+- **Double-click** a finished file to open it; **right-click** it to open it or show it in its folder. Hover a
+  cut-off name to slide the rest of it into view.
+- The tabs filter by state — **Downloading**, **Queued**, **Paused**, **Completed**, **Failed**.
 - The **Speed** panel charts your download speed — pick **5m, 30m, 1h, 6h or 24h** to see that far back, and
   hover the line for exact numbers. A dashed line shows your speed limit, if you've set one.
 - Closing Waypoint mid-download is fine: downloads pick up where they left off next time. (With **Close to
@@ -193,7 +198,7 @@ Use this mode when a host won't cooperate with the automatic window, or when you
 ## Settings worth knowing
 
 - **Simultaneous downloads** and **Connections per file** — how many files download at once, and how many
-  connections each uses. Lower them if a host starts refusing you.
+  connections each uses (16 by default). Lower them if a host starts refusing you.
 - **Speed limit** — caps total download speed (0 = unlimited). It's one cap shared by all downloads, and the
   speed graph draws it as a dashed line.
 - **WinRAR** — Waypoint finds it automatically; set the path here if it can't.

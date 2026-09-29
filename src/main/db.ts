@@ -43,6 +43,7 @@ interface BatchRow {
   extract_status: string
   extract_error: string | null
   created_at: number
+  finished_at: number | null
 }
 
 const MIGRATIONS = [
@@ -84,6 +85,9 @@ const MIGRATIONS = [
   `
   ALTER TABLE batches ADD COLUMN delete_archives INTEGER NOT NULL DEFAULT 0;
   ALTER TABLE links ADD COLUMN ord INTEGER NOT NULL DEFAULT 0;
+  `,
+  `
+  ALTER TABLE batches ADD COLUMN finished_at INTEGER;
   `
 ]
 
@@ -105,7 +109,8 @@ const BATCH_COLUMNS: Partial<Record<keyof Batch, string>> = {
   name: 'name',
   status: 'status',
   extractStatus: 'extract_status',
-  extractError: 'extract_error'
+  extractError: 'extract_error',
+  finishedAt: 'finished_at'
 }
 
 function toLink(row: LinkRow): LinkRecord {
@@ -138,7 +143,8 @@ function toBatch(row: BatchRow): Batch {
     status: row.status as BatchStatus,
     extractStatus: row.extract_status as ExtractStatus,
     extractError: row.extract_error,
-    createdAt: row.created_at
+    createdAt: row.created_at,
+    finishedAt: row.finished_at ?? null
   }
 }
 

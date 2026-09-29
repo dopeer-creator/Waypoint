@@ -2,6 +2,25 @@
 
 All notable changes to Waypoint. Newest first.
 
+## v0.8.7
+A round of small fixes to the Downloads page.
+
+- **Names and paths get room.** The File column now takes the lion's share of spare width, so on a wide window
+  full file names fit. A long batch name slides to reveal itself on hover, like file names already did.
+- **The folder path keeps the folder's name.** It used to cut off the end ("C:\Users\Admin\De…"); now the start
+  gives way first ("C:\Users\…\Batman - Arkham Asylum"). The full path is still on hover.
+- **Error messages get two lines** instead of being cut off after a few words.
+- **"Queued" means one thing.** The Queued tab used to count paused files while the Queued counter up top
+  didn't, so they disagreed. Paused files have their own tab now, and the two Queued numbers match.
+- **"Idle"** in the top Speed stat when nothing is downloading, instead of a dash.
+- **One speed graph.** The small one next to Pause all duplicated the Speed panel at the bottom; it's gone.
+- **Double-click a finished file to open it**, right-click for Open / Show in folder. If the file's gone (moved,
+  or deleted after extracting) you get a message saying so instead of nothing.
+- **Sort by any column** — click File, Progress, Downloaded, Speed, ETA or Status. Click again to reverse, a
+  third time for queue order. The move-up/down arrows hide while sorted, since queue order isn't what's shown.
+- **Finished batches say how it went:** "9 files · 4.2 GB in 12m 34s" — time from adding the batch to
+  finishing, pauses included.
+
 ## v0.8.2
 - **Faster downloads by default.** Connections per file goes from 8 to 16 out of the box — more parallel
   connections to the same file, on hosts that allow it. Still adjustable in Settings.
