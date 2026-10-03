@@ -9,8 +9,41 @@ on:
 permissions:
   contents: write
 
+# GitHub has started this workflow twice for a single tag push (v0.9.0). Both runs built and uploaded at the same
+# time, each into its own draft, and the slower one's draft was left behind next to the published release. Runs
+# for the same tag now go one at a time, and the `check` job stops any run that finds the tag already released.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      state: ${{ steps.existing.outputs.state }}
+    steps:
+      - name: Look for an existing release for this tag
+        id: existing
+        shell: bash
+        run: |
+          # published: nothing to do. draft: an earlier run failed part-way, carry on into it. none: fresh release.
+          if out=$(gh release view "$GITHUB_REF_NAME" --json isDraft --jq '.isDraft' 2>&1); then
+            if [ "$out" = "true" ]; then state=draft; else state=published; fi
+          elif echo "$out" | grep -qi "release not found"; then
+            state=none
+          else
+            echo "Could not check for an existing release: $out"
+            exit 1
+          fi
+          echo "Release $GITHUB_REF_NAME: $state"
+          echo "state=$state" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+
   release:
+    needs: check
+    if: needs.check.outputs.state != 'published'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,8 +74,10 @@ jobs:
           if [ -s notes.md ]; then echo "have_notes=true" >> "$GITHUB_ENV"; else echo "have_notes=false" >> "$GITHUB_ENV"; fi
 
       # Create the release up front. electron-builder uploads its files in parallel, and without an existing
-      # release each upload can create its own, splitting the files across duplicate releases.
+      # release each upload can create its own, splitting the files across duplicate releases. Skipped when a
+      # draft is already there (a re-run after a failed build), so a second draft is never made for one tag.
       - name: Create draft release
+        if: needs.check.outputs.state == 'none'
         shell: bash
         run: |
           if [ "$have_notes" = "true" ]; then
