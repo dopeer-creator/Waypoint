@@ -2,6 +2,17 @@
 
 All notable changes to Waypoint. Newest first.
 
+## v0.9.1
+The Downloads page fits a small window.
+
+- **Nothing runs off the edge any more.** The window can be made as narrow as 1000px, but the rows needed about
+  1200px — below that the buttons on the right were cut off and some columns overlapped. Under 1260px the page
+  now switches to a compact layout: the %, Speed and ETA columns fold into a line under each name
+  ("60% · 2.2 MB/s · 1m 27s left"), so nothing is lost.
+- **Pause all / Resume all wrap** to a second line when the tabs leave no room, instead of sliding out of view.
+- **Two columns were too tight at every size.** "Downloaded" and Status are wide enough now for their longest
+  text ("Finished with errors" used to be clipped).
+
 ## v0.9.0
 Automatic mode no longer leaves tabs stuck.
 

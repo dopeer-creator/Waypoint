@@ -1490,11 +1490,52 @@ kbd {
 /* The fixed columns used to add up to more than the card at a 1320px-wide window (a 1650px screen at 125%
    scaling), and .batch clips overflow, so the right-hand end of every row was cut off. The numeric columns may
    now compress, and the gap is tighter, which buys enough room to stay inside the card on smaller windows. */
+/* Minimums are sized to the longest thing each column shows ("95.4 MB / 99.9 MB", "Finished with errors"),
+   not the typical one: a column that's 6px short overlaps its neighbour. */
 .dl-grid {
   gap: 10px;
   grid-template-columns:
-    22px minmax(180px, 3fr) minmax(90px, 1fr) minmax(96px, 128px) 48px
-    minmax(68px, 84px) minmax(58px, 72px) minmax(108px, 142px) 108px;
+    22px minmax(180px, 3fr) minmax(90px, 1fr) minmax(110px, 132px) 48px
+    minmax(68px, 84px) minmax(58px, 72px) 150px 108px;
+}
+
+.narrow-only {
+  display: none;
+}
+
+.downloads-page .toolbar {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  row-gap: 8px;
+}
+
+/* The two buttons wrap to the next line together, not one at a time. */
+.toolbar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/*
+ * Compact layout. The window can be as narrow as 1000px, and nine columns need about 1230px. Below that the
+ * %, Speed and ETA columns go, and the same numbers show on a line under the file name (.narrow-only) instead —
+ * nothing is lost, and the right-hand buttons stay inside the card. The progress column can't go under 76px
+ * (its header label), and 100px is three action buttons, the most any row shows.
+ */
+@media (max-width: 1259px) {
+  .dl-grid {
+    gap: 8px;
+    grid-template-columns: 22px minmax(170px, 3fr) minmax(76px, 1fr) minmax(110px, 132px) 150px 100px;
+  }
+
+  .dl-grid > :nth-child(5),
+  .dl-grid > :nth-child(6),
+  .dl-grid > :nth-child(7) {
+    display: none;
+  }
+
+  .narrow-only {
+    display: revert;
+  }
 }
 
 .batch {

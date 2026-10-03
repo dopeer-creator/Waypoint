@@ -174,12 +174,14 @@ export function Downloads({ snapshot, api, run, onGoToGrabber, deleteFilesDefaul
           ))}
         </div>
         <span className="spacer" />
-        <Button size="sm" icon="pause" onClick={() => run(api.pauseAll())} disabled={!hasRunning}>
-          Pause all
-        </Button>
-        <Button size="sm" icon="play" onClick={() => run(api.resumeAll())} disabled={!hasPaused}>
-          Resume all
-        </Button>
+        <div className="toolbar-actions">
+          <Button size="sm" icon="pause" onClick={() => run(api.pauseAll())} disabled={!hasRunning}>
+            Pause all
+          </Button>
+          <Button size="sm" icon="play" onClick={() => run(api.resumeAll())} disabled={!hasPaused}>
+            Resume all
+          </Button>
+        </div>
       </div>
 
       <div className="row head dl-grid dl-head">
@@ -344,7 +346,16 @@ function BatchCard({ batch, links, filter, sort, open, onToggle, onRemove, onRen
           )}
           <span className="subtle batch-sub" title={batch.dir}>
             <span className="batch-summary" title={finishedIn ? 'From adding the batch to finishing, pauses included' : undefined}>
-              {finishedIn ? `${plural(links.length, 'file')} · ${formatBytes(total)} in ${finishedIn}` : `${completed}/${links.length} files`} ·&nbsp;
+              {finishedIn ? `${plural(links.length, 'file')} · ${formatBytes(total)} in ${finishedIn}` : `${completed}/${links.length} files`}
+              {batch.status !== 'done' && (
+                <span className="narrow-only">
+                  {' · '}
+                  {[`${Math.floor(pct)}%`, speed > 0 && formatSpeed(speed), batch.status === 'downloading' && batchEtaSec > 0 && `${formatDuration(batchEtaSec)} left`]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+              )}{' '}
+              ·&nbsp;
             </span>
             <span className="path">
               <span className="path-head">{dirHead}</span>
@@ -420,6 +431,14 @@ function FileRow({ link, sorted, api, run }: { link: LinkItem; sorted: boolean; 
       <span />
       <div className="cell-main">
         <ScrollText text={name} className="primary-text file-name" title={name} />
+        {/* Stands in for the %, Speed and ETA columns, which a narrow window has no room for. */}
+        {!complete && (
+          <span className="subtle narrow-only">
+            {[`${Math.floor(pct)}%`, active && link.speed > 0 && formatSpeed(link.speed), active && link.speed > 0 && link.totalBytes > done && `${formatEta(link.totalBytes - done, link.speed)} left`]
+              .filter(Boolean)
+              .join(' · ')}
+          </span>
+        )}
         {link.error && !complete && (
           <span className={`row-error ${link.dlStatus === 'expired' ? 'subtle' : 'error-text'}`} title={link.error}>
             {link.error}
